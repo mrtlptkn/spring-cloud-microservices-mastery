@@ -1,0 +1,11 @@
+username:admin
+password:admin
+
+realm
+test-realm
+client
+test-client
+user
+test-user
+pass
+P@ssword1

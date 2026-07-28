@@ -1,0 +1,123 @@
+
+server:
+  port: 5020
+
+## H2 Database Settings
+
+
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/saga_db
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  application:
+    name: saga-service
+  cloud:
+    function:
+      definition: orderSubmitEvent;checkStockEvent;makePaymentEvent;stockReservedEvent;stockNotAvailableEvent;paidSucceededEvent;paidFailedEvent
+    stream:
+      bindings:
+        # Send Channel
+        orderSubmitEvent-out-0:
+          destination: saga_order_submitted
+          content-type: application/json
+        checkStockEvent-out-0:
+            destination: saga_order_checkStock
+            content-type: application/json
+        makePaymentEvent-out-0:
+            destination: saga_order_makePayment
+            content-type: application/json
+
+
+        # Replay Channel
+        stockReservedEvent-out-0:
+          destination: saga_order_stockReserved
+          content-type: application/json
+        stockNotAvailableEvent-out-0:
+          destination: saga_order_stockNotAvailable
+          content-type: application/json
+        paidSucceededEvent-out-0:
+          destination: saga_order_paidSucceeded
+          content-type: application/json
+        paidFailedEvent-out-0:
+          destination: saga_order_paidFailed
+          content-type: application/json
+        completeOrderEvent-out-0:
+          destination: saga_order_completeOrder
+          content-type: application/json
+        rejectOrderEvent-out-0:
+          destination: saga_order_rejectOrder
+          content-type: application/json
+        releaseStockEvent-out-0:
+          destination: saga_order_releaseStock
+          content-type: application/json
+        orderSubmitEvent-in-0:
+          destination: saga_order_submitted
+          content-type: application/json
+          group: saga-service
+        checkStockEvent-in-0:
+          destination: saga_order_checkStock
+          content-type: application/json
+          group: inventory-service
+        makePaymentEvent-in-0:
+          destination: saga_order_makePayment
+          content-type: application/json
+          group: payment-service
+        stockReservedEvent-in-0:
+          destination: saga_order_stockReserved
+          content-type: application/json
+          group: inventory-service
+        stockNotAvailableEvent-in-0:
+          destination: saga_order_stockNotAvailable
+          content-type: application/json
+          group: inventory-service
+        releaseStockEvent-in-0:
+          destination: saga_order_releaseStock
+          content-type: application/json
+          group: inventory-service
+        paidSucceededEvent-in-0:
+          destination: saga_order_paidSucceeded
+          content-type: application/json
+          group: payment-service
+        paidFailedEvent-in-0:
+          destination: saga_order_paidFailed
+          content-type: application/json
+          group: payment-service
+        completeOrderEvent-in-0:
+          destination: saga_order_completeOrder
+          content-type: application/json
+          group: order-service
+        rejectOrderEvent-in-0:
+          destination: saga_order_rejectOrder
+          content-type: application/json
+          group: order-service
+
+
+      kafka:
+        binder:
+          configuration:
+            isolation:
+              level=read_committed
+          auto-create-topics: true
+          brokers: localhost:29092
+          producer-properties:
+              enable.idempotence: "true"
+              acks: "all"
+              retries: "10"
+              max.in.flight.requests.per.connection: "5"
+            # Tek bir TCP bağlantısı üzerinden aynı anda broker’a gönderilen mesaj sayısı
+
+
+logging:
+  pattern:
+    console:
+  level:
+    root: OFF

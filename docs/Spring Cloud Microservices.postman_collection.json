@@ -1,0 +1,201 @@
+{
+	"info": {
+		"_postman_id": "eb7caa92-144b-4fcf-bcdb-dbf4a5c2b92d",
+		"name": "Spring Cloud Microservices",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "40527392",
+		"_collection_link": "https://www.postman.com/neominal-solutions2024/workspace/spring-microservices-app/collection/40527392-eb7caa92-144b-4fcf-bcdb-dbf4a5c2b92d?action=share&source=collection_link&creator=40527392"
+	},
+	"item": [
+		{
+			"name": "OrderService",
+			"item": [
+				{
+					"name": "getOrderedProducts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:5001/api/v1/orders/123/orderDetails",
+							"host": [
+								"localhost"
+							],
+							"port": "5001",
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"123",
+								"orderDetails"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Spring Cloud Stream Publisher endpoint",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "localhost:5001/api/v1/orders/sendKafka",
+							"host": [
+								"localhost"
+							],
+							"port": "5001",
+							"path": [
+								"api",
+								"v1",
+								"orders",
+								"sendKafka"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Gateway",
+			"item": [
+				{
+					"name": "Order Service (GetOrderedProducts) FROM GW",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "localhost:8083/order-service/api/v1/orders/123/orderDetails",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"order-service",
+								"api",
+								"v1",
+								"orders",
+								"123",
+								"orderDetails"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Product Service (GetOrderedProducts FROM GW)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{accessToken}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"ProductIds\":[\"1\",\"2\"]}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "localhost:8083/product-service/api/v1/products/details",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"product-service",
+								"api",
+								"v1",
+								"products",
+								"details"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "AuthServer",
+			"item": [
+				{
+					"name": "ConnectToken",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "password",
+									"type": "text"
+								},
+								{
+									"key": "username",
+									"value": "ali",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "P@ssword1",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "test-client",
+									"type": "text"
+								},
+								{
+									"key": "client_secret",
+									"value": "USZehefVnHGOVtfy46ngFdizJy5nTvmW",
+									"type": "text"
+								},
+								{
+									"key": "scope",
+									"value": "openid profile test-client",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:8180/realms/AuthServer/protocol/openid-connect/token",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8180",
+							"path": [
+								"realms",
+								"AuthServer",
+								"protocol",
+								"openid-connect",
+								"token"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
