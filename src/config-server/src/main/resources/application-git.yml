@@ -1,0 +1,12 @@
+spring:
+  config:
+    activate:
+      on-profile: git
+  cloud:
+    config:
+      server:
+        git:
+          default-label: master
+          uri: https://github.com/neominalbilisim/spring-cloud-config-repo
+          search-paths: src/config/order-service-config
+
