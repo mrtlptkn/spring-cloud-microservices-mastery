@@ -6,7 +6,7 @@ spring:
     config:
       server:
         git:
-          default-label: master
+          default-label: main
           uri: https://github.com/neominalbilisim/spring-cloud-config-repo
           search-paths: src/config/order-service-config
 
