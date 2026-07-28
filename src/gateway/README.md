@@ -305,8 +305,18 @@ Not: `application.yml` içinde eureka `defaultZone` açıkça yazılmasa da, eur
 - `/actuator/**` -> `permitAll`
 - `/product-service/**` -> `authenticated`
 - `/order-service/**` -> şu an `permitAll` (yorum satırlarında role bazlı örnek bırakılmış)
+- diğer tüm endpoint'ler -> `authenticated` (`anyExchange().authenticated()`)
 
 Bu yapı, gateway'de merkezi authz/authn kuralı yönetimini gösterir.
+
+### KeyResolver İyileştirmeleri
+
+`GatewayApplication` içinde iki resolver tanımlıdır:
+
+- `ipKeyResolver`: `remoteAddress` boş gelebilecek senaryolara karşı null-safe çalışır; boş durumda `unknown` döner.
+- `userIdKeyResolver`: authenticated kullanıcı varsa `Principal#getName` değerini döner, yoksa `anonymous` döner.
+
+Bu yaklaşım, rate limiter anahtar üretiminde NPE riskini azaltır ve IP bazlı/kimlik bazlı limit stratejileri arasında geçişi kolaylaştırır.
 
 ## Çalıştırma
 
@@ -327,6 +337,335 @@ cd "C:\Users\merta\Desktop\Spring Cloud Microservices\spring-cloud-microservices
 - `gateway` modülü WebFlux tabanlıdır; bloklayıcı işlemlerden kaçınılmalıdır.
 - `pom.xml` içinde bazı bağımlılıklar tekrar ediyor olabilir (ör. circuit breaker ve reactor-test). Temizlik için tekilleştirme yapılabilir.
 - Production ortamında `permitAll` route'ları gözden geçirilmeli ve role bazlı erişimle sıkılaştırılmalıdır.
+
+## Spring Cloud Gateway Önemli Özellikler
+
+### 1) Predicates (Yönlendirme Kuralları)
+
+Predicates, isteklerin hangi koşullarda iletilebileceğini tanımlar. `application.yml` içinde kullanılan örnek:
+
+```yaml
+- Path=/order-service/api/v1/**
+- Path=/product-service/api/v1/**
+```
+
+Spring Cloud Gateway'in desteklediği predicate tipleri:
+
+- **Path**: URL path'ine göre eşleştirme
+- **Method**: HTTP METHOD'ına göre (GET, POST, PUT, DELETE vb.)
+- **Header**: HTTP header değerlerine göre
+- **Query**: Query parameter'larına göre
+- **Host**: Host header'ına göre
+- **Weight**: Yük dağıtımı (bir route'u % oranla diğerine yönlendir)
+- **DateTime**: Belirli tarih/saat aralıklarında aktif
+- **Cookie**: Cookie değerlerine göre
+
+Örnek (extension):
+
+```yaml
+routes:
+  - id: conditionalRoute
+    uri: lb://order-service
+    predicates:
+      - Path=/order-service/**
+      - Method=POST,GET
+      - Header=X-Custom-Header,.*
+      - Query=type,premium
+```
+
+### 2) Filters (İstek/Cevap Dönüştürme)
+
+Filters, istekleri ve cevapları işlemek için middleware gibi davranır. `application.yml` içinde kullanılan örnek:
+
+```yaml
+- StripPrefix=1  # /order-service/... -> Hedef serviste /...
+- RequestRateLimiter  # Rate limiting
+- CircuitBreaker  # Hata toleransı
+```
+
+Spring Cloud Gateway'in desteklediği bazı filter tipleri:
+
+- **StripPrefix**: URL path'inin başından N segment'i kaldır
+- **PrefixPath**: URL path'inin başına önek ekle
+- **RewritePath**: Regex ile path'i yeniden yaz
+- **RequestRateLimiter**: Rate limiter uygula (Redis-backed)
+- **CircuitBreaker**: Resilience4j ile circuit breaker
+- **Retry**: Başarısız istekleri tekrar dene
+- **RequestHeaderToRequestUri**: Header'daki bilgiyi URI'ya ekle
+- **AddRequestHeader / AddResponseHeader**: Header ekle/değiştir
+- **GatewayMetrics**: Prometheus metrikleri
+
+Örnek (FilterFactory):
+
+```yaml
+- name: AddRequestHeader
+  args:
+    name: X-Request-ID
+    value: "request-123"
+- name: Retry
+  args:
+    retries: 3
+    statuses: 502,503
+    backoff:
+      firstBackoff: 10ms
+      maxBackoff: 50ms
+      factor: 2
+```
+
+### 3) Rate Limiter (Redis-Backed)
+
+Gateway'de `RequestRateLimiter` filter'ı, Redis'te hızlı karar verimi için token bucket algoritmasını kullanır.
+
+`application.yml` içindeki yapılandırma:
+
+```yaml
+- name: RequestRateLimiter
+  args:
+    redis-rate-limiter.requestedTokens: 1  # Her istek kaç token tüketir
+    redis-rate-limiter.replenishRate: 1    # Saniyede kaç token üretilir
+    redis-rate-limiter.burstCapacity: 1    # İstemci kaç token biriktire bilir
+    key-resolver: "#{@ipKeyResolver}"      # Token quota'sı kime atfedilir (IP, user ID vb.)
+```
+
+- `requestedTokens=1, replenishRate=1, burstCapacity=1`: Saniyede 1 istek izni
+- IP başına rate limit uygulanır (her IP kendi quota'sına sahip)
+- Redis'in uygun şekilde çalışması gerekir
+- İhtiyaca göre `key-resolver` değeri `#{@userIdKeyResolver}` yapılarak kullanıcı bazlı limit uygulanabilir
+
+### 4) Circuit Breaker (Resilience4j)
+
+Gateway filter'ı olarak kullanılan circuit breaker, hedef servisin down olacağında fallback yanıt döner.
+
+`application.yml` konfigürasyonu:
+
+```yaml
+- name: CircuitBreaker
+  args:
+    name: productServiceBreaker
+    fallbackUri: forward:/fallback/product-service  # Hata durumunda gidilecek endpoint
+    statusCodes:
+      - "500"  # Hangi HTTP status'lar circuit breaker tetikler?
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      productServiceBreaker:
+        slidingWindowSize: 3              # Son 3 isteği takip et
+        minimumNumberOfCalls: 3            # Karar vermek için en az 3 istek gerekli
+        failureRateThreshold: 50           # %50 hata oranında circuit'i aç
+        permittedNumberOfCallsInHalfOpenState: 2  # Half-open'da 2 isteği dene
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 30s       # Açık kaldığı süre
+```
+
+Bu özellik, cascade failure'ı (zincir hataları) önler ve sistemin bozulgan servisler nedeniyle tümüyle çökmesini engeller.
+
+### 5) Request/Response Mutation (Değiştirme)
+
+Gateway'de istekleri ve cevapları değiştirmek sık bir gereksinimdir:
+
+```yaml
+# Header Ekleme
+- name: AddRequestHeader
+  args:
+    name: X-User-ID
+    value: "${user_id}"
+
+# Header Kaldırma
+- name: RemoveRequestHeader
+  args:
+    name: X-Internal-Token
+
+# Response Header Ekleme
+- name: AddResponseHeader
+  args:
+    name: X-Request-Duration
+    value: "ms"
+
+# Path Yeniden Yazma
+- name: RewritePath
+  args:
+    regexp: "^/old-api/(.*)$"
+    replacement: "/new-api/$1"
+```
+
+## Production Ortamı İçin Dikkat Edilmesi Gereken Noktalar
+
+### 1) HTTPS / TLS Konfigürasyonu
+
+Production'da gateway'in SSL/TLS üzerinden çalışması zorunlu:
+
+```yaml
+server:
+  port: 8443
+  ssl:
+    key-store: classpath:keystore.p12
+    key-store-password: your_password
+    key-store-type: PKCS12
+    enabled: true
+```
+
+- Geçerli bir SSL sertifikası kullanın (self-signed değil)
+- Keycloak da HTTPS olmalıdır; aksi takdirde `issuer-uri` ve `jwk-set-uri` başarısız olabilir
+- Ters proxy (Nginx/Ingress) arkasındaysa `X-Forwarded-Proto` header'ını kontrol edin
+
+### 2) Keycloak Token Yönetimi
+
+Production'da token timeout ve refresh stratejisini belirleyin:
+
+```yaml
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://keycloak.production.com/realms/AuthServer
+          jwk-set-uri: https://keycloak.production.com/realms/AuthServer/protocol/openid-connect/certs
+```
+
+Dikkat edilecek noktalar:
+
+- Token cache'leme: Keycloak'ta public key'ler sık değişmez; gateway tarafında cache yapılabilir
+- Token revocation: Login çıkışında token'ları iptal et
+- Keycloak uptime: Keycloak down olursa token doğrulaması başarısız olur; HA kurulumu yap
+- JWKS endpoint'in erişilebilir olduğundan emin ol (firewall, network)
+
+### 3) Rate Limiter Ayarları
+
+Production'da istemci profili ve SLA'ya göre ayarla:
+
+```yaml
+# Düık trafik ortamı
+redis-rate-limiter.requestedTokens: 1
+redis-rate-limiter.replenishRate: 100  # Saniyede 100 istek
+redis-rate-limiter.burstCapacity: 200
+
+# Premium plan için farklı route
+- id: premiumRoute
+  uri: lb://order-service
+  predicates:
+    - Path=/premium/**
+    - Header=X-Plan-Type,premium
+  filters:
+    - StripPrefix=1
+    - name: RequestRateLimiter
+      args:
+        redis-rate-limiter.requestedTokens: 1
+        redis-rate-limiter.replenishRate: 1000
+        redis-rate-limiter.burstCapacity: 2000
+        key-resolver: "#{@userIdKeyResolver}"  # Kullanıcı ID'sine göre rate limit
+```
+
+**Redis High Availability:** Rate limiter Redis'e (ve Sentinel/Cluster) bağımlıdır. Single node Redis production ortamında yetersizdir.
+
+### 4) Circuit Breaker Tuning
+
+Production'da hedef servis karakteristiklerine göre ayarla:
+
+```yaml
+resilience4j:
+  circuitbreaker:
+    instances:
+      productServiceBreaker:
+        slidingWindowSize: 10              # Daha fazla veri topla
+        minimumNumberOfCalls: 5            # Karar vermek için 5 istek gerekli
+        failureRateThreshold: 50           # %50 hata oranı
+        slowCallRateThreshold: 80          # %80 slow call (>2s) oranı
+        slowCallDurationThreshold: 2000    # 2 saniye üzeri slow call
+        permittedNumberOfCallsInHalfOpenState: 3
+        waitDurationInOpenState: 60s       # Circuit 1 dakika açık kalır
+        failureExceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+```
+
+Fallback cevaplarının mantıklı olduğundan emin ol (hata mesajı, cache'lenmiş data vb.).
+
+### 5) Logging ve Monitoring
+
+Production'da şu komponentleri monitor et:
+
+```yaml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "health,info,prometheus,metrics,circuitbreakers"
+  endpoint:
+    health:
+      show-details: when-authorized
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  zipkin:
+    tracing:
+      endpoint: https://zipkin.production.com/api/v2/spans
+  tracing:
+    sampling:
+      probability: 0.1  # %10 sampling (production'da az oranda trace)
+
+logging:
+  level:
+    org.springframework.cloud.gateway: WARN
+    org.springframework.security.oauth2: WARN
+    io.github.resilience4j: WARN
+```
+
+- **Metrics:** Prometheus + Grafana ile gateway'in response time'ı, error rate'i, rate limiter rejection'larını izle
+- **Traces:** Zipkin ile istek flow'unu ve latency'i takip et
+- **Logs:** ELK (Elasticsearch/Kibana) ile centralized logging yap
+- **Alerts:** Circuit breaker açılması, rate limit rejectionleri, auth failure'ları alarm olarak ayarla
+
+### 6) CORS Konfigürasyonu
+
+Cross-Origin istemleri kontrol altında tut:
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "https://client.production.com"
+              - "https://admin.production.com"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+            maxAge: 3600
+```
+
+Production'da wildcard (`*`) kullanma; açıkça izin ver.
+
+### 7) Load Balancing ve Redundancy
+
+- **Multiple Gateway Instances:** Load balancer arkasında ≥2 gateway instance'ı çalıştır
+- **Service Discovery:** Eureka'nın stabil ve HA kurulumu yap
+- **Health Checks:** Load balancer'da gateway health endpoint'ini (`/actuator/health`) izle
+
+### 8) Security Best Practices
+
+- **Rate Limit Evasion:** IP spoofing riskini azalt; true client IP'yi doğru header'dan al
+- **Request Timeout:** Veri kaybı riski için timeout'u makul set et:
+
+```yaml
+spring:
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: 10000  # ms
+        response-timeout: 10000  # ms
+```
+
+- **Secret Management:** Client secret ve SSL key'leri environment variable'lardan oku; hardcode etme
+- **Audit Logging:** Authentication/Authorization event'lerini log'la
 
 ## Özet
 
