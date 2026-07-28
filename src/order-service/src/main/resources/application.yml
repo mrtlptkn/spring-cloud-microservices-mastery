@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: order-service
+  profiles:
+    active: dev
+  cloud:
+    config:
+      uri: http://localhost:8085
+    stream:
+      kafka:
+        binder:
+          auto-create-topics: true
+          brokers: localhost:29092
+        bindings:
+          submitOrder-out-0:
+            producer:
+              configuration:
+                enable:
+                  idempotance: true
+                acks: all
+                retries: 3
+      bindings:
+        submitOrder-out-0:
+          destination: order_topic
+        orderSubmitFailed-in-0:
+          destination: order_failed_topic
+          group: order_failed_group
+    function:
+      definition: orderSubmitFailed
+  config:
+    import: optional:configserver:http://localhost:8085
+  boot:
+    admin:
+      client:
+        enabled: true
+        url: http://localhost:8081
+
+server:
+  port: 5001
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: "*"
+  tracing:
+    sampling:
+      probability: 1.0
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+
+logging:
+  level:
+    com.mertalptekin.orderservice.client.ProductClient: DEBUG
+
