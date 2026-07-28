@@ -1,9 +1,0 @@
-server:
-  port: 8085
-
-spring:
-  application:
-    name: config-server
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:git}
-
