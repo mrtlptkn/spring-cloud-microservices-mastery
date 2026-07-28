@@ -57,7 +57,7 @@ Bu servisin temel sorumlulukları:
 
 ## Proje Yapısı
 
-- `controller/HomeController.java` → Service discovery demo endpoint'i ve MDC log enrichment
+- `controller/HomeController.java` → Service discovery demo endpoint’i ve MDC log enrichment
 - `controller/ProductsController.java` → Ürün detay API’si
 - `consumer/SubmitOrderConsumer.java` → Kafka consumer ve telafi event üretimi
 - `dto/OrderedProduct.java` → Ürün DTO’su
@@ -101,25 +101,25 @@ Sipariş ekranında kullanılacak ürün detaylarını döndürür.
 
 ### `GET /api/v1/order-service-invocation-with-service-discovery`
 
-Bu endpoint, `DiscoveryClient` ile `order-service` instance'ini bulup `RestClient` ile dinamik servis cagrisi yapar. Ayrica MDC kullanarak her cagrida benzersiz `sessionId` uretir ve loglara ekler.
+Bu endpoint, `DiscoveryClient` ile `order-service` instance’ını bulup `RestClient` ile dinamik servis çağrısı yapar. Ayrıca MDC kullanarak her çağrıda benzersiz `sessionId` üretir ve loglara ekler.
 
-**Akis:**
+**Akış:**
 
-1. `MDC.put("sessionId", UUID.randomUUID().toString())` ile korelasyon id olusturulur
-2. `logger.info("ProductService Logger")` satiri bu id ile loglanir
+1. `MDC.put("sessionId", UUID.randomUUID().toString())` ile korelasyon id oluşturulur
+2. `logger.info("ProductService Logger")` satırı bu id ile loglanır
 3. `DiscoveryClient#getInstances("order-service")` ile hedef servis bulunur
-4. `RestClient` ile `/api/v1` endpoint'ine cagrisi yapilir
+4. `RestClient` ile `/api/v1` endpoint’ine çağrısı yapılır
 5. `MDC.clear()` ile thread-local context temizlenir
 
-**MDC neden onemli?**
+**MDC neden önemli?**
 
-- Ayni request'e ait log satirlarini ELK tarafinda kolayca filtrelemeyi saglar
-- Servisler arasi cagrilarda olay korelasyonu yapmayi kolaylastirir
-- Incident analizinde "hangi log hangi request'e ait" sorusunu hizli cozer
+- Aynı request’e ait log satırlarını ELK tarafında kolayca filtrelemeyi sağlar
+- Servisler arası çağrılarda olay korelasyonu yapmayı kolaylaştırır
+- Incident analizinde "hangi log hangi request’e ait" sorusunu hızlı çözer
 
-Ornek kod parcasi (`HomeController`):
+Örnek kod parçası (`HomeController`):
 
-```java
+```text
 MDC.put("sessionId", UUID.randomUUID().toString());
 logger.info("ProductService Logger");
 MDC.clear();
@@ -245,43 +245,43 @@ Servis, `src/main/resources/logback_spring.xml` dosyasında hem dosya appender'�
 
 #### Logback neden kullanılır?
 
-Spring Boot'un varsayilan log altyapisi Logback'tir ve production ortamlarda su avantajlari saglar:
+Spring Boot'un varsayılan log altyapısı Logback’tir ve production ortamlarda şu avantajları sağlar:
 
-- **Merkezi kontrol:** Log seviyesi (`INFO`, `WARN`, `ERROR`) tek yerden yonetilir
-- **Appender modeli:** Ayni log kaydi birden fazla hedefe ayni anda gonderilebilir
-- **Encoder destegi:** Plain text veya JSON format secimi yapilabilir
-- **Rolling policy:** Log dosyalari boyut/tarih bazli otomatik dondurulur
+- **Merkezi kontrol:** Log seviyesi (`INFO`, `WARN`, `ERROR`) tek yerden yönetilir
+- **Appender modeli:** Aynı log kaydı birden fazla hedefe aynı anda gönderilebilir
+- **Encoder desteği:** Plain text veya JSON format seçimi yapılabilir
+- **Rolling policy:** Log dosyaları boyut/tarih bazlı otomatik döndürülür
 
-Kisacasi Logback, "logu sadece yazmak" yerine "logu yonetilebilir ve gozlemlenebilir hale getirmek" icin kullanilir.
+Kısacası Logback, "logu sadece yazmak" yerine "logu yönetilebilir ve gözlemlenebilir hale getirmek" için kullanılır.
 
-#### File Appender (`RollingFileAppender`) ne ise yarar?
+#### File Appender (`RollingFileAppender`) ne işe yarar?
 
-`FILE` appender'i loglari disk uzerinde saklar. Bu sayede:
+`FILE` appender’i logları disk üzerinde saklar. Bu sayede:
 
-- ELK gecici olarak ulasilamazsa log kaybi riski azalir
-- Sunucu uzerinde geriye donuk inceleme (forensic/debug) yapilabilir
-- Uygulama loglari operasyon ekipleri tarafindan dosya bazli da takip edilebilir
+- ELK geçici olarak ulaşılamazsa log kaybı riski azalır
+- Sunucu üzerinde geriye dönük inceleme (forensic/debug) yapılabilir
+- Uygulama logları operasyon ekipleri tarafından dosya bazlı da takip edilebilir
 
-Bu projede `logging.file.name` ile hedef dosya yolu tanimlanir. Ornek: `./logs/product-service/product-service.log`.
+Bu projede `logging.file.name` ile hedef dosya yolu tanımlanır. Örnek: `./logs/product-service/product-service.log`.
 
-#### LogstashTcpSocketAppender ne ise yarar?
+#### LogstashTcpSocketAppender ne işe yarar?
 
-`LOGSTASH` appender'i loglari TCP uzerinden Logstash'e yollar.
+`LOGSTASH` appender’i logları TCP üzerinden Logstash’e yollar.
 
-- `LogstashEncoder` ile loglar JSON formatina donusturulur
-- Logstash bu kayitlari parse eder ve Elasticsearch'e aktarir
-- Kibana uzerinden servis bazli arama, filtreleme ve dashboard yapilabilir
+- `LogstashEncoder` ile loglar JSON formatına dönüştürülür
+- Logstash bu kayıtları parse eder ve Elasticsearch’e aktarır
+- Kibana üzerinden servis bazlı arama, filtreleme ve dashboard yapılabilir
 
-Bu mekanizma, mikroservislerde merkezi log yonetimi icin kritik oneme sahiptir.
+Bu mekanizma, mikroservislerde merkezi log yönetimi için kritik öneme sahiptir.
 
-#### File + Logstash birlikte nasil calisir?
+#### File + Logstash birlikte nasıl çalışır?
 
-Bu yapida tek bir log olayi iki hedefe paralel gider:
+Bu yapıda tek bir log olayı iki hedefe paralel gider:
 
-1. **File appender** -> lokal dosyaya yazar (yerel kalicilik)
-2. **Logstash appender** -> ELK pipeline'ina yollar (merkezi gozlemlenebilirlik)
+1. **File appender** -> lokal dosyaya yazar (yerel kalıcılık)
+2. **Logstash appender** -> ELK pipeline’ına yollar (merkezi gözlemlenebilirlik)
 
-Boylece hem yerel tanilama hem de merkezi izleme ihtiyaci ayni anda karsilanir.
+Böylece hem yerel tanılama hem de merkezi izleme ihtiyacı aynı anda karşılanır.
 
 ```xml
 <springProperty scope="context" name="logFile" source="logging.file.name"/>
