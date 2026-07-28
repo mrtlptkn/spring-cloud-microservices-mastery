@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/src/admin-server/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/config-server/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/eureka-server/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/gateway/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/order-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/product-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/saga-service/src/main/java" charset="UTF-8" />
+  </component>
+</project>
