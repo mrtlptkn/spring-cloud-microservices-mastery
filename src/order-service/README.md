@@ -179,6 +179,17 @@ public interface ProductClient {
 3. **Circuit Breaker:** Kütüphanede yapılandırılırsa, başarısız istekleri tollayabilir
 4. **Retry Mekanizması:** Ağ hatalarında otomatik retry yapılabilir
 
+### OpenFeign İsteklerinde Tracing Header Propagation
+
+`TracingInterceptor`, Feign istekleri gönderilmeden hemen önce devreye giren bir `RequestInterceptor` bileşenidir. Amaç, mevcut tracing context'i downstream servise taşımaktır.
+
+- `Tracer.currentSpan()` ile o anda aktif olan span alınır
+- Span varsa `b3` header'ı request'e eklenir
+- Header içeriği `traceId-spanId-sampled` formatındadır
+- Böylece `order-service` → `product-service` çağrıları aynı trace zinciri içinde izlenebilir
+
+Bu yaklaşım, distributed tracing akışında context propagation sağlar ve Zipkin üzerinde servisler arası çağrıların tek bir iz olarak görünmesine yardımcı olur.
+
 ### Production'da OpenFeign Konfigürasyonu
 
 ```yaml
@@ -474,48 +485,25 @@ public class OrderService {
 
 ### 1) High Availability (HA) Konfigürasyonu
 
-```yaml
-server:
-  port: 5001
-  # Graceful shutdown: bir container instance down olursa
-  shutdown: graceful
-  servlet:
-    session:
-      timeout: 30m
+Bu bölümdeki production ayarları uygulamanın çoklu instance çalışmasına uygun hale getirilmesini hedefler:
 
-spring:
-  application:
-    name: order-service
-    version: 1.0.0
-
-eureka:
-  instance:
-    # IP tercihini devre dışı bırak (hostname kullan)
-    prefer-ip-address: false
-    # Heartbeat interval
-    lease-renewal-interval-in-seconds: 30
-    # Eureka'nın instance'ı dead saymadan önceki timeout
-    lease-expiration-duration-in-seconds: 90
-    # Health endpoint
-    health-check-url-path: /actuator/health
-    status-page-url-path: /actuator/info
-  client:
-    # Multiple Eureka servers
-    service-url:
-      defaultZone: https://eureka1.production.com:8761/eureka/,https://eureka2.production.com:8761/eureka/
-    # Eureka'ya kayıt olmak için başarısız olursa uygulama başlamayacak
-    register-with-eureka: true
-    fetchRegistry: true
-
-# Thread pool ayarları
-server:
-  tomcat:
-    threads:
-      max: 200  # Max thread pool size
-      min-spare: 10  # Min spare threads
-    accept-count: 100
-    connection-timeout: 20000ms
-```
+- `server.port: 5001`
+- `server.shutdown: graceful`
+- `server.tomcat.threads.max: 200`
+- `server.tomcat.threads.min-spare: 10`
+- `server.tomcat.accept-count: 100`
+- `server.tomcat.connection-timeout: 20000ms`
+- `server.servlet.session.timeout: 30m`
+- `spring.application.name: order-service`
+- `spring.application.version: 1.0.0`
+- `eureka.instance.prefer-ip-address: false`
+- `eureka.instance.lease-renewal-interval-in-seconds: 30`
+- `eureka.instance.lease-expiration-duration-in-seconds: 90`
+- `eureka.instance.health-check-url-path: /actuator/health`
+- `eureka.instance.status-page-url-path: /actuator/info`
+- `eureka.client.service-url.defaultZone`: `https://eureka1.production.com:8761/eureka/,https://eureka2.production.com:8761/eureka/`
+- `eureka.client.register-with-eureka: true`
+- `eureka.client.fetchRegistry: true`
 
 ### 2) Database Connection Pooling (Hikari)
 

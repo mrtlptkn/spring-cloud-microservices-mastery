@@ -1,0 +1,71 @@
+spring:
+  application:
+    name: product-service
+  profiles:
+    active: dev
+  boot:
+    admin:
+      client:
+        enabled: true
+        url: http://localhost:8081
+  cloud:
+    function:
+      definition: orderSubmitted
+    stream:
+      kafka:
+        binder:
+          auto-create-topics: true
+          brokers: localhost:29092
+        bindings:
+          orderSubmitted-in-0:
+            consumer:
+              enable-dlq: true
+              dlq-name: order_dlq_topic
+              auto-commit-on-error: false
+          orderSubmitFailed-out-0:
+            producer:
+              configuration:
+                enable.idempotence: true
+                acks: all
+                retries: 3
+      bindings:
+        orderSubmitted-in-0:
+          destination: order_topic
+          group: order_group
+        orderSubmitFailed-out-0:
+          destination: order_failed_topic
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+server:
+  port: 5002
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when_authorized
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+logging:
+  level:
+    com.mertalptekin.productservice: INFO
+

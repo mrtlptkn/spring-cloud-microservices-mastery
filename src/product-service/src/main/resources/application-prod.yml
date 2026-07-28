@@ -1,0 +1,79 @@
+spring:
+  config:
+    activate:
+      on-profile: prod
+  application:
+    name: product-service
+  boot:
+    admin:
+      client:
+        enabled: true
+        url: ${SPRING_BOOT_ADMIN_URL:http://spring-boot-admin:8081}
+  cloud:
+    function:
+      definition: orderSubmitted
+    stream:
+      kafka:
+        binder:
+          auto-create-topics: false
+          brokers: ${KAFKA_BROKERS:broker-1:9092,broker-2:9092,broker-3:9092}
+        bindings:
+          orderSubmitted-in-0:
+            consumer:
+              enable-dlq: true
+              dlq-name: ${ORDER_DLQ_TOPIC:order_dlq_topic}
+              auto-commit-on-error: false
+              max-attempts: ${ORDER_MAX_ATTEMPTS:3}
+          orderSubmitFailed-out-0:
+            producer:
+              configuration:
+                enable.idempotence: true
+                acks: all
+                retries: 10
+      bindings:
+        orderSubmitted-in-0:
+          destination: ${ORDER_TOPIC:order_topic}
+          group: ${ORDER_GROUP:order_group}
+        orderSubmitFailed-out-0:
+          destination: ${ORDER_FAILED_TOPIC:order_failed_topic}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_DEFAULT_ZONE:http://eureka-server:8761/eureka}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${SERVER_PORT:5002}
+    lease-renewal-interval-in-seconds: ${EUREKA_LEASE_RENEWAL_INTERVAL:30}
+    lease-expiration-duration-in-seconds: ${EUREKA_LEASE_EXPIRATION_DURATION:90}
+
+server:
+  port: ${SERVER_PORT:5002}
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when_authorized
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  info:
+    env:
+      enabled: true
+
+logging:
+  level:
+    com.mertalptekin.productservice: ${LOG_LEVEL_PRODUCT_SERVICE:INFO}
+    org.springframework.kafka: ${LOG_LEVEL_KAFKA:WARN}
+    org.springframework.cloud.stream: ${LOG_LEVEL_STREAM:INFO}
