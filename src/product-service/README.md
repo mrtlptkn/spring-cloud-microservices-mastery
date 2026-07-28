@@ -32,6 +32,9 @@ Bu servisin temel sorumlulukları:
 - **Spring Cloud Function**: Fonksiyon tabanlı consumer tanımı
 - **Spring Boot Admin Client**: Merkezi izleme
 - **OpenFeign**: Projede hazır durumda bulunan declarative HTTP client altyapısı
+- **Spring Boot AOP**: Kesitsel loglama/izleme ihtiyaçları için altyapı
+- **Micrometer Tracing**: Trace/span context yönetimi
+- **Logback + Logstash Encoder**: JSON log üretimi ve ELK pipeline entegrasyonu
 - **Lombok**: Boilerplate azaltma
 - **Spring Boot Test**: Test desteği
 
@@ -45,6 +48,9 @@ Bu servisin temel sorumlulukları:
 - `org.springframework.cloud:spring-cloud-starter-stream-kafka`
 - `org.springframework.cloud:spring-cloud-starter-openfeign`
 - `de.codecentric:spring-boot-admin-starter-client`
+- `org.springframework.boot:spring-boot-starter-aop`
+- `io.micrometer:micrometer-tracing`
+- `net.logstash.logback:logstash-logback-encoder`
 - `org.projectlombok:lombok`
 
 > Not: Bu servis şu an Config Server kullanmıyor. Ortam bazlı ayarlar doğrudan `application.yml` ve `application-prod.yml` içinde tutuluyor.
@@ -126,6 +132,53 @@ Bu yapı, hata yönetimi ve gecikme toleransı senaryolarını test etmek için 
 
 Bu yapı sayesinde `product-service` tarafından tetiklenen Feign çağrıları, `order-service` ile aynı trace içinde görünür. Böylece Zipkin veya benzeri tracing araçları kullanıldığında HTTP çağrıları ve işleme süreleri tek bir uçtan uca akış olarak izlenebilir.
 
+## DLQ ve Hata Yönetimi Stratejisi
+
+`product-service`, `orderSubmitted-in-0` consumer tarafında hata toleransı için DLQ (Dead Letter Queue) kullanır. Amaç, tekrar işlenemeyen veya business kuralı nedeniyle başarısız mesajları ana akıştan ayırmaktır.
+
+### Mevcut DLQ ayarları
+
+```yaml
+spring:
+  cloud:
+    stream:
+      kafka:
+        bindings:
+          orderSubmitted-in-0:
+            consumer:
+              enable-dlq: true
+              dlq-name: order_dlq_topic
+              auto-commit-on-error: false
+              max-attempts: 3
+```
+
+- `enable-dlq: true`: başarısız tüketim sonunda mesajı DLQ'ya taşır
+- `auto-commit-on-error: false`: hata alan offset'i başarı saymaz
+- `max-attempts`: transient hatalarda sınırlı retry uygular
+
+### DLQ ne zaman devreye girer?
+
+- **Transient hata**: broker/network kısa süreli problemi; retry sonrası başarı mümkün
+- **Poison message**: payload bozuk, schema uyumsuz, deserialize edilemeyen mesaj
+- **Business validation failure**: domain kuralını ihlal eden mesaj (örn. stok/politika ihlali)
+
+### DLQ operasyon önerileri
+
+- `order_dlq_topic` için ayrı retention policy tanımlayın (örn. 3-7 gün)
+- DLQ topic'ini doğrudan prod consumer'a bağlamayın; önce inceleme/reprocess adımı uygulayın
+- Reprocess ederken aynı poison mesajın sonsuz döngüye girmesini engellemek için `x-retry-count` gibi header stratejisi kullanın
+- DLQ metriklerini (`lag`, `message count`, `age`) alert kurallarıyla izleyin
+
+### Reprocess Playbook (öneri)
+
+1. DLQ mesajını sınıflandır: transient mi, kalıcı mı?
+2. Kalıcı ise payload veya mapping düzeltmesi yap
+3. Düzeltme sonrası mesajı kontrollü bir reprocess topic'ine taşı
+4. Reprocess sonucunu audit log ile doğrula
+5. Başarısızsa manuel incelemeye bırak
+
+Bu yaklaşım, ana event akışını bloklamadan hatalı mesajları güvenli şekilde yönetmeyi sağlar.
+
 ## Konfigürasyon Dosyaları
 
 ### `application.yml`
@@ -141,6 +194,8 @@ Ortak geliştirme ayarları burada tutulur.
 - **DLQ topic:** `order_dlq_topic`
 - **Actuator base path:** `/actuator`
 - **Health probes:** aktif
+- **Log dosya yolu:** `./logs/product-service/product-service.log`
+- **Logstash hedefi:** `localhost:5044`
 
 ### `application-prod.yml`
 
@@ -152,8 +207,28 @@ Production ortamı için çevresel değişken odaklı ayarlar içerir.
 - **Application port:** `SERVER_PORT`
 - **Topic isimleri:** `ORDER_TOPIC`, `ORDER_FAILED_TOPIC`, `ORDER_DLQ_TOPIC`
 - **Consumer retry davranışı:** `ORDER_MAX_ATTEMPTS`
+- **Log dosya yolu:** `LOG_FILE_PATH` (varsayılan: `/var/log/product-service/product-service.log`)
+- **Logstash hedefi:** `LOGSTASH_SERVER` (varsayılan: `logstash:5044`)
 - **Log seviyesi:** `LOG_LEVEL_PRODUCT_SERVICE`
 - **Tracing header propagation:** OpenFeign isteklerinde `b3` header’ı korunur
+
+### Logback / ELK Template
+
+Servis, `src/main/resources/logback_spring.xml` dosyasında hem dosya appender'ı hem de `LogstashTcpSocketAppender` kullanır.
+
+```xml
+<springProperty scope="context" name="logFile" source="logging.file.name"/>
+<springProperty scope="context" name="logstashServer" source="logging.logstash.server"/>
+<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${logFile:-./logs/product-service/product-service.log}</file>
+</appender>
+<appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+    <destination>${logstashServer:-localhost:5044}</destination>
+    <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
+</appender>
+```
+
+Bu template ile loglar hem dosyaya (`logging.file.name`) hem de Logstash'e (`logging.logstash.server`) gönderilir. ELK tarafında indeksleme için JSON encoder kullanımı korunur.
 
 ## Production Ortamı İçin Önemli Noktalar
 
@@ -165,6 +240,21 @@ Production ortamı için çevresel değişken odaklı ayarlar içerir.
 - `acks: all` ile veri güvenliği artırılmalıdır.
 - `retries` değeri artırılmalıdır.
 - Consumer tarafında DLQ aktif tutulmalıdır.
+
+#### Neden `auto-create-topics` production'da kapatılmalı?
+
+`auto-create-topics: true`, geliştirme ortamında hız kazandırır; ancak production'da aşağıdaki riskleri oluşturur:
+
+- **Kontrolsüz topic oluşumu**: yazım hatasıyla yeni ve yanlış topic açılabilir (`order-topci` gibi)
+- **Yanlış default ayarlar**: partition sayısı, replication factor, retention gibi kritik değerler broker default'u ile açılır
+- **Operasyonel tutarsızlık**: ACL, naming convention, backup ve izleme politikaları devreye girmeden topic oluşur
+- **SLA riski**: yanlış replication/partition ile performans ve dayanıklılık hedefleri bozulur
+
+Öneri:
+
+1. Production'da `auto-create-topics: false` kullanın
+2. Topic'leri IaC (Terraform/Ansible) veya admin script ile önceden oluşturun
+3. Her topic için `partitions`, `replication-factor`, `retention.ms`, `min.insync.replicas` değerlerini açıkça tanımlayın
 
 ### 2. Eureka ayarları
 
@@ -187,6 +277,28 @@ Actuator health endpoint’leri production ortamda özellikle önemlidir.
 - Uygulama log seviyesi ortam bazlı yönetilmelidir.
 - Kafka ve stream logları prod ortamda `WARN` seviyesine çekilebilir.
 - Merkezi loglama varsa ELK / OpenSearch entegrasyonu önerilir.
+
+#### ELK için örnek application ayarı
+
+```yaml
+logging:
+  file:
+    name: ./logs/product-service/product-service.log
+  logstash:
+    server: localhost:5044
+  level:
+    com.mertalptekin.productservice: INFO
+```
+
+Production örneği:
+
+```yaml
+logging:
+  file:
+    name: /var/log/product-service/product-service.log
+  logstash:
+    server: logstash:5044
+```
 
 ### 5. Boot Admin entegrasyonu
 

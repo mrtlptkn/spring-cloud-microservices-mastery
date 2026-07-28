@@ -73,6 +73,10 @@ management:
       enabled: true
 
 logging:
+  file:
+    name: ${LOG_FILE_PATH:/var/log/product-service/product-service.log}
+  logstash:
+    server: ${LOGSTASH_SERVER:logstash:5044}
   level:
     com.mertalptekin.productservice: ${LOG_LEVEL_PRODUCT_SERVICE:INFO}
     org.springframework.kafka: ${LOG_LEVEL_KAFKA:WARN}

@@ -66,6 +66,10 @@ management:
       enabled: true
 
 logging:
+  file:
+    name: ./logs/product-service/product-service.log
+  logstash:
+    server: localhost:5044
   level:
     com.mertalptekin.productservice: INFO
 
