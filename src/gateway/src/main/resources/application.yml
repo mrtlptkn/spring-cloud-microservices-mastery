@@ -73,7 +73,7 @@ resilience4j:
         timeoutDuration: 2s # Throw TimeoutException if request takes longer than 2s
 
 server:
-  port: 8083
+  port: 8084
 
 management:
   zipkin:
@@ -88,7 +88,7 @@ management:
       probability: 1.0
 
 
-# http://localhost:8083/actuator/circuitbreakers
+# http://localhost:8084/actuator/circuitbreakers
 
 # Rate Limitter Postman Collection Runner ile test case
 
@@ -98,6 +98,12 @@ logging:
     org.springframework.cloud.gateway: INFO
     org.springframework.data.redis: INFO
     io.github.resilience4j: INFO
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
 
 
 

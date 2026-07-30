@@ -25,7 +25,7 @@ Mevcut güvenlik akışına göre:
 
 Bu nedenle Keycloak testini doğrulamak için en uygun route:
 
-- `POST http://localhost:8083/product-service/api/v1/products/details`
+- `POST http://localhost:8084/product-service/api/v1/products/details`
 
 Bu endpoint'e:
 
@@ -424,7 +424,7 @@ pm.environment.set("accessToken", json.access_token);
 Aşağıdaki isteği **Authorization olmadan** gönderin:
 
 ```text
-POST http://localhost:8083/product-service/api/v1/products/details
+POST http://localhost:8084/product-service/api/v1/products/details
 ```
 
 Body:
@@ -456,7 +456,7 @@ Authorization: Bearer {{accessToken}}
 Method ve URL:
 
 ```text
-POST http://localhost:8083/product-service/api/v1/products/details
+POST http://localhost:8084/product-service/api/v1/products/details
 ```
 
 Body:

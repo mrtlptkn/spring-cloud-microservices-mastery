@@ -33,6 +33,7 @@ Ana bağımlılıklar (`pom.xml`):
 - `org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j`
 - `org.springframework.boot:spring-boot-starter-data-redis-reactive`
 - `org.springframework.boot:spring-boot-starter-actuator`
+- `org.springdoc:springdoc-openapi-starter-webflux-ui`
 - `io.micrometer:micrometer-tracing`
 - `io.micrometer:micrometer-tracing-bridge-brave`
 - `io.zipkin.reporter2:zipkin-reporter-brave`
@@ -59,6 +60,20 @@ Ek olarak:
 - Resilience4j circuit breaker (`productServiceBreaker`)
 - Keycloak tabanlı JWT doğrulama (`issuer-uri`, `jwk-set-uri`)
 - Actuator ve Zipkin tracing ayarları
+
+## Swagger / OpenAPI
+
+`gateway` modülünde Swagger dokümantasyonu WebFlux uyumlu `springdoc-openapi-starter-webflux-ui` ile etkinleştirilmiştir.
+
+### Erişim adresleri (dev)
+
+- Swagger UI: `http://localhost:8084/swagger-ui.html`
+- OpenAPI JSON: `http://localhost:8084/v3/api-docs`
+
+### Güvenlik notu
+
+- `SecurityConfig` içinde `/v3/api-docs/**`, `/swagger-ui.html`, `/swagger-ui/**` ve `/webjars/**` endpoint'leri `permitAll` olarak tanımlanmıştır.
+- Böylece API dokümanına token olmadan erişilebilir; business route'lar için mevcut JWT kuralları geçerliliğini korur.
 
 ## Keycloak Entegrasyonu ve OAuth2.0 / OpenID Connect
 
@@ -118,7 +133,7 @@ Oluşturulan client'ı aç ve şu ayarları yap:
 
 - **Access Type (Authentication Flow):** `confidential` (backend-to-backend) veya `public` (SPA)
 - **Valid Redirect URIs:** Gateway'in callback URL'si (producer/consumer token flow için)
-  - Örnek: `http://localhost:8083/*`
+  - Örnek: `http://localhost:8084/*`
 - **Audience (Token):** Keycloak token'ında `aud` (audience) claim'ini set etmek isterseniz, Keycloak'ta advanced ayarlardan konfigüre edin
 
 #### 4) Realm Roles ve User Mapping
@@ -264,7 +279,7 @@ Cevap:
 
 ```bash
 curl -H "Authorization: Bearer <access_token>" \
-  http://localhost:8083/product-service/api/v1/products/details
+  http://localhost:8084/product-service/api/v1/products/details
 ```
 
 Gateway `Authorization` header'ındaki token'ı alır, Keycloak public key'lerle doğrular ve geçerse isteği yönlendirir.
@@ -280,11 +295,11 @@ Yani **doğrudan compile-time bağımlılık yok**.
 
 Aşağıdaki bileşenler gateway üzerinden erişim modeline bağımlıdır:
 
-- **İstemciler (Postman / UI / dış servisler):** API çağrılarını gateway portundan (`8083`) yapar.
+- **İstemciler (Postman / UI / dış servisler):** API çağrılarını gateway portundan (`8084`) yapar.
 - **`order-service`:** Gateway route'u ile erişilen hedef servislerden biri.
 - **`product-service`:** Gateway route'u ile erişilen hedef servislerden biri.
 
-`docs/Spring Cloud Microservices.postman_collection.json` içinde de `localhost:8083` üzerinden örnek çağrılar bulunur.
+`docs/Spring Cloud Microservices.postman_collection.json` içinde de `localhost:8084` üzerinden örnek çağrılar bulunur.
 
 ## Gateway Projesinin Bağımlı Olduğu Projeler/Bileşenler
 

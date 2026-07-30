@@ -33,7 +33,7 @@ spring-cloud-microservices-mastery/
 | `config-server` | 8085 | Spring Boot | Merkezi konfigürasyon |
 | `eureka-server` | 8761 | Spring Boot | Servis keşfi |
 | `admin-server` | 8081 | Spring Boot | İzleme paneli |
-| `gateway` | 8083 | Spring Boot (WebFlux) | API geçidi |
+| `gateway` | 8084 | Spring Boot (WebFlux) | API geçidi |
 | `order-service` | 5001 | Spring Boot | Sipariş yönetimi |
 | `product-service` | 5002 | Spring Boot | Ürün yönetimi |
 | `saga-service` | 5020 | Spring Boot | Saga orkestrasyonu |
@@ -67,7 +67,7 @@ Aşağıdaki diyagram servislerin birbirine olan bağımlılıklarını gösteri
            │ OpenFeign ile çağırır  ┌──────────────────┐
            ▼                        │ product-service  │ :5002
     ┌──────────────┐                └──────┬───────────┘
-    │   gateway    │ :8083                 │
+    │   gateway    │ :8084                 │
     │  (WebFlux)   │                       │ Kafka'ya event basar
     └──────┬───────┘               ┌───────┘
            │ Keycloak JWT doğrular ▼
@@ -227,8 +227,8 @@ cd "src\gateway"
 ```
 
 Gateway üzerinden örnek istek:
-- `http://localhost:8083/order-service/api/v1/...`
-- `http://localhost:8083/product-service/api/v1/...`
+- `http://localhost:8084/order-service/api/v1/...`
+- `http://localhost:8084/product-service/api/v1/...`
 
 ---
 
