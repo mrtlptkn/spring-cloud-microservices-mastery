@@ -29,6 +29,7 @@ Bu modül, mikroservis mimarisinde **Saga Orchestration** yaklaşımıyla sipari
 - **Spring Cloud Function**: Consumer fonksiyonları
 - **Spring Boot Data JPA**: Saga state kalıcılığı
 - **PostgreSQL Driver**: Runtime veritabanı sürücüsü
+- **Springdoc OpenAPI (Swagger UI)**: API dokümantasyonu ve interaktif test ekranı
 - **Lombok**: Boilerplate azaltma
 - **Spring Boot Test + Stream Test Binder**: Test desteği
 
@@ -40,6 +41,7 @@ Ana bağımlılıklar (`pom.xml`):
 - `org.springframework.cloud:spring-cloud-starter-stream-kafka`
 - `org.springframework.boot:spring-boot-starter-data-jpa`
 - `org.postgresql:postgresql`
+- `org.springdoc:springdoc-openapi-starter-webmvc-ui`
 - `org.projectlombok:lombok`
 - `org.springframework.cloud:spring-cloud-stream-test-binder` (test)
 
@@ -80,6 +82,20 @@ Saga akışını başlatır ve ilk event’i yayınlar.
 ```
 
 Bu istekten sonra servis `orderSubmitEvent-out-0` binding’i üzerinden `saga_order_submitted` topic’ine event gönderir.
+
+## Swagger / OpenAPI
+
+`saga-service` içinde Swagger dokümantasyonu `springdoc-openapi-starter-webmvc-ui` ile etkinleştirilmiştir.
+
+### Erişim adresleri (dev)
+
+- Swagger UI: `http://localhost:5020/swagger-ui.html`
+- OpenAPI JSON: `http://localhost:5020/v3/api-docs`
+
+### Notlar
+
+- `SagaController` endpoint’i `@Tag`, `@Operation` ve `@ApiResponses` anotasyonlarıyla dokümante edilmiştir.
+- OpenAPI başlık/sürüm bilgileri `OpenApiConfig` içindeki `OpenAPI` bean’i ile yönetilir.
 
 ## Saga Yaşam Döngüsü
 
