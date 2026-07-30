@@ -4,6 +4,12 @@ package com.mertalptekin.productservice.controller;
 import com.mertalptekin.productservice.dto.OrderedProduct;
 import com.mertalptekin.productservice.request.OrderedProductDetailRequest;
 import com.mertalptekin.productservice.response.OrderedProductDetailResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +25,7 @@ import java.util.List;
 @RestController
 @RequestMapping("api/v1/products")
 @Slf4j
+@Tag(name = "Products", description = "Urun detay endpoint'leri")
 public class ProductsController {
 
     private final String serverPort;
@@ -30,6 +37,11 @@ public class ProductsController {
 
     // api/v1/products/details
     @PostMapping("details")
+    @Operation(summary = "Siparis urun detaylarini getir", description = "Gonderilen urun kimliklerine gore urun detaylarini doner")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Basarili", content = @Content(schema = @Schema(implementation = OrderedProductDetailResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Sunucu hatasi")
+    })
     public ResponseEntity<OrderedProductDetailResponse> productDetailRequest(@RequestBody OrderedProductDetailRequest request) throws InterruptedException {
 
 

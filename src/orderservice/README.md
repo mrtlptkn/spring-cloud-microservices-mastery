@@ -47,6 +47,7 @@ Ana bağımlılıklar (`pom.xml`):
 - `org.springframework.cloud:spring-cloud-starter-loadbalancer` - Client-side load balancing
 - `org.springframework.cloud:spring-cloud-starter-stream-kafka` - Kafka messaging
 - `de.codecentric:spring-boot-admin-starter-client` - Spring Boot Admin integration
+- `org.springdoc:springdoc-openapi-starter-webmvc-ui` - Swagger/OpenAPI dokümantasyonu
 - `io.micrometer:micrometer-tracing` - Tracing framework
 - `io.zipkin.reporter2:zipkin-reporter-brave` - Zipkin reporter
 - `org.projectlombok:lombok` - Code generation
@@ -155,6 +156,21 @@ management:
 - **Actuator:** Tüm endpoints açık (health, metrics, vb.)
 - **Spring Boot Admin:** `http://localhost:8081` üzerinde merkezi yönetim
 - **Zipkin:** %100 trace sampling (`1.0`)
+
+## Swagger / OpenAPI
+
+`order-service` içinde Swagger dokümantasyonu `springdoc-openapi-starter-webmvc-ui` ile etkinleştirilmiştir.
+
+### Erişim adresleri (dev)
+
+- Swagger UI: `http://localhost:5001/swagger-ui.html`
+- OpenAPI JSON: `http://localhost:5001/v3/api-docs`
+
+### Notlar
+
+- `OrderController` ve `HomeController` endpoint'lerinde `@Tag`, `@Operation` ve `@ApiResponses` anotasyonları kullanılır.
+- OpenAPI doküman başlık/sürüm bilgileri `OpenApiConfig` sınıfındaki `OpenAPI` bean'i ile yönetilir.
+- Production profilinde (`application-prod.yml`) güvenlik amacıyla Swagger endpoint'leri varsayılan olarak kapalıdır.
 
 ## OpenFeign İle Servis-to-Service İletişimi
 

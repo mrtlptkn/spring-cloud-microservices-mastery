@@ -352,3 +352,9 @@ application:
     distributed-tracing: enabled
     kafka-events: enabled
 
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+

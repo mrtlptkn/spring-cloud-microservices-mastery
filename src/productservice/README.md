@@ -33,6 +33,7 @@ Bu servisin temel sorumlulukları:
 - **Spring Boot Admin Client**: Merkezi izleme
 - **OpenFeign**: Projede hazır durumda bulunan declarative HTTP client altyapısı
 - **Spring Boot AOP**: Kesitsel loglama/izleme ihtiyaçları için altyapı
+- **Springdoc OpenAPI (Swagger UI)**: API dokümantasyonu ve interaktif test ekranı
 - **Micrometer Tracing**: Trace/span context yönetimi
 - **Logback + Logstash Encoder**: JSON log üretimi ve ELK pipeline entegrasyonu
 - **Lombok**: Boilerplate azaltma
@@ -49,6 +50,7 @@ Bu servisin temel sorumlulukları:
 - `org.springframework.cloud:spring-cloud-starter-openfeign`
 - `de.codecentric:spring-boot-admin-starter-client`
 - `org.springframework.boot:spring-boot-starter-aop`
+- `org.springdoc:springdoc-openapi-starter-webmvc-ui`
 - `io.micrometer:micrometer-tracing`
 - `net.logstash.logback:logstash-logback-encoder`
 - `org.projectlombok:lombok`
@@ -133,6 +135,23 @@ MDC.clear();
 - `ProductIds.length == 3` ise 3 saniyelik gecikme simüle edilir.
 
 Bu yapı, hata yönetimi ve gecikme toleransı senaryolarını test etmek için kullanılır.
+
+## Swagger / OpenAPI
+
+`product-service` içinde Swagger, `springdoc-openapi-starter-webmvc-ui` ile etkinleştirilmiştir.
+
+### Erişim adresleri (dev)
+
+- Swagger UI: `http://localhost:5002/swagger-ui.html`
+- OpenAPI JSON: `http://localhost:5002/v3/api-docs`
+
+### Notlar
+
+- `ProductsController` ve `HomeController` endpoint'lerinde `@Operation`, `@ApiResponses`, `@Tag` anotasyonları kullanılır.
+- Swagger dokümanı `OpenApiConfig` içindeki `OpenAPI` bean'i üzerinden başlık/sürüm/açıklama bilgilerini alır.
+- Production profilinde (`application-prod.yml`) güvenlik için Swagger endpoint'leri varsayılan olarak kapatılmıştır:
+  - `springdoc.api-docs.enabled: false`
+  - `springdoc.swagger-ui.enabled: false`
 
 ## Event Akışı
 
@@ -221,6 +240,8 @@ Ortak geliştirme ayarları burada tutulur.
 - **DLQ topic:** `order_dlq_topic`
 - **Actuator base path:** `/actuator`
 - **Health probes:** aktif
+- **Swagger UI path:** `/swagger-ui.html`
+- **OpenAPI path:** `/v3/api-docs`
 - **Log dosya yolu:** `./logs/product-service/product-service.log`
 - **Logstash hedefi:** `localhost:5044`
 
@@ -237,6 +258,7 @@ Production ortamı için çevresel değişken odaklı ayarlar içerir.
 - **Log dosya yolu:** `LOG_FILE_PATH` (varsayılan: `/var/log/product-service/product-service.log`)
 - **Logstash hedefi:** `LOGSTASH_SERVER` (varsayılan: `logstash:5044`)
 - **Log seviyesi:** `LOG_LEVEL_PRODUCT_SERVICE`
+- **Swagger politikası:** production profilinde kapalı (`springdoc.api-docs.enabled=false`, `springdoc.swagger-ui.enabled=false`)
 - **Tracing header propagation:** OpenFeign isteklerinde `b3` header’ı korunur
 
 ### Logback / ELK Template

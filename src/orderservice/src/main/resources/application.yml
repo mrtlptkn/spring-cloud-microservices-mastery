@@ -55,3 +55,9 @@ logging:
   level:
     com.mertalptekin.orderservice.client.ProductClient: DEBUG
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+

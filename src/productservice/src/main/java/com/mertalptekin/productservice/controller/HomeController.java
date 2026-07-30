@@ -1,6 +1,8 @@
 package com.mertalptekin.productservice.controller;
 
 import com.netflix.appinfo.InstanceInfo;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.cloud.client.ServiceInstance;
@@ -17,6 +19,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("api/v1")
+@Tag(name = "Discovery", description = "Servis kesfi ve servisler arasi cagri endpoint'leri")
 public class HomeController {
 
     private final   DiscoveryClient discoveryClient;
@@ -34,6 +37,7 @@ public class HomeController {
     // http://localhost:5002/api/v1/order-service-invocation-with-service-discovery
 
     @GetMapping("order-service-invocation-with-service-discovery")
+    @Operation(summary = "Order Service cagri denemesi", description = "DiscoveryClient ile order-service instance bulur ve /api/v1 endpoint'ini cagirir")
     public String getOrderServiceInvocationResult(){
 
         MDC.put("sessionId", UUID.randomUUID().toString());
