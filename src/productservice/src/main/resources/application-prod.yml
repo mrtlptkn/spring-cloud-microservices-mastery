@@ -73,6 +73,7 @@ management:
       enabled: true
 
 logging:
+  config: classpath:logback-spring.xml
   file:
     name: ${LOG_FILE_PATH:/var/log/product-service/product-service.log}
   logstash:
