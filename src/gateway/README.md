@@ -62,6 +62,10 @@ Ek olarak:
 
 ## Keycloak Entegrasyonu ve OAuth2.0 / OpenID Connect
 
+Keycloak entegrasyonunu adım adım test etmek için ayrıca şu dokümana bakabilirsiniz:
+
+- [`README-keycloak-test.md`](./README-keycloak-test.md)
+
 ### Genel Mimari
 
 `gateway` projesi, **OAuth2.0 Resource Server** olarak çalışır. İstemciler bir JWT access token ile istekte bulunurlar ve gateway bu token'ı Keycloak'tan çekilen public key'lerle doğrular.
@@ -445,7 +449,9 @@ Gateway filter'ı olarak kullanılan circuit breaker, hedef servisin down olaca�
     fallbackUri: forward:/fallback/product-service  # Hata durumunda gidilecek endpoint
     statusCodes:
       - "500"  # Hangi HTTP status'lar circuit breaker tetikler?
+```
 
+```yaml
 resilience4j:
   circuitbreaker:
     instances:
@@ -535,25 +541,34 @@ Dikkat edilecek noktalar:
 Production'da istemci profili ve SLA'ya göre ayarla:
 
 ```yaml
-# Düık trafik ortamı
-redis-rate-limiter.requestedTokens: 1
-redis-rate-limiter.replenishRate: 100  # Saniyede 100 istek
-redis-rate-limiter.burstCapacity: 200
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: basicRateLimitedRoute
+          uri: lb://order-service
+          predicates:
+            - Path=/order-service/**
+          filters:
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.requestedTokens: 1
+                redis-rate-limiter.replenishRate: 100  # Düşük trafik ortamı: saniyede 100 istek
+                redis-rate-limiter.burstCapacity: 200
 
-# Premium plan için farklı route
-- id: premiumRoute
-  uri: lb://order-service
-  predicates:
-    - Path=/premium/**
-    - Header=X-Plan-Type,premium
-  filters:
-    - StripPrefix=1
-    - name: RequestRateLimiter
-      args:
-        redis-rate-limiter.requestedTokens: 1
-        redis-rate-limiter.replenishRate: 1000
-        redis-rate-limiter.burstCapacity: 2000
-        key-resolver: "#{@userIdKeyResolver}"  # Kullanıcı ID'sine göre rate limit
+        - id: premiumRoute
+          uri: lb://order-service
+          predicates:
+            - Path=/premium/**
+            - Header=X-Plan-Type,premium
+          filters:
+            - StripPrefix=1
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.requestedTokens: 1
+                redis-rate-limiter.replenishRate: 1000
+                redis-rate-limiter.burstCapacity: 2000
+                key-resolver: "#{@userIdKeyResolver}"  # Kullanıcı ID'sine göre rate limit
 ```
 
 **Redis High Availability:** Rate limiter Redis'e (ve Sentinel/Cluster) bağımlıdır. Single node Redis production ortamında yetersizdir.
