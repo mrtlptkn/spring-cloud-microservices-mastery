@@ -120,6 +120,8 @@ Teste başlamadan önce aşağıdaki bileşenlerin ayakta olması gerekir:
 - Product Service
 - Gateway
 
+> **Not:** Bu testte Redis, Keycloak için değil `gateway` içindeki `RequestRateLimiter` filtresi için gereklidir. Gateway, istek sayaçlarını ve token bucket durumunu Redis üzerinde tuttuğu için Redis kapalıysa rate limiting davranışı düzgün çalışmayabilir ve gateway tarafında hata görülebilir.
+
 ### Keycloak'ı başlatma
 
 ```powershell
@@ -133,6 +135,14 @@ docker-compose up -d
 cd "C:\Users\merta\Desktop\Spring Cloud Microservices\spring-cloud-microservices-mastery\docs\docker\docker\redis"
 docker-compose up -d
 ```
+
+`gateway` projesinde `product-service` route'u üzerinde Redis tabanlı `RequestRateLimiter` kullanılmaktadır. Bu yapı token bucket algoritması ile çalışır ve:
+
+- her isteğin kaç token tüketeceğini,
+- saniyede kaç yeni token üretileceğini,
+- istemcinin ne kadar burst trafik gönderebileceğini
+
+Redis üzerinde takip eder. Bu nedenle Redis olmadan gateway'in rate limiter filtresi sağlıklı çalışmaz.
 
 ### Kafka'yı başlatma
 
@@ -431,6 +441,8 @@ Beklenen sonuç:
 
 Bu sonuç, gateway'in gerçekten authentication istediğini gösterir.
 
+> Art arda çok hızlı istek gönderirseniz, authentication doğru olsa bile gateway üzerindeki Redis tabanlı rate limiter nedeniyle `429 Too Many Requests` cevabı alabilirsiniz.
+
 ---
 
 ### 9.2 İkinci test: Bearer token ile istek
@@ -605,6 +617,24 @@ Kontrol edin:
 
 ---
 
+### Hata: `429 Too Many Requests`
+
+Olası nedenler:
+
+- Redis tabanlı rate limiter devreye girdi
+- Aynı IP üzerinden çok kısa sürede birden fazla istek gönderildi
+- Postman Collection Runner ile seri test yapılırken istek limiti aşıldı
+
+Kontrol edin:
+
+- Redis ayakta mı? (`localhost:6379`)
+- Gateway içindeki `RequestRateLimiter` ayarları çok düşük mü?
+- Test istekleri arasında kısa bir bekleme koymak gerekiyor mu?
+
+Bu hata, çoğu zaman Keycloak veya JWT doğrulama problemi değil, gateway üzerindeki trafik sınırlama davranışıdır.
+
+---
+
 ### Hata: Token alınamıyor
 
 Olası nedenler:
@@ -633,6 +663,7 @@ Olası nedenler:
 Aşağıdaki checklist ile test ortamını hızlıca doğrulayabilirsiniz:
 
 - [ ] Keycloak ayakta mı? (`http://localhost:8180/admin`)
+- [ ] Redis ayakta mı? (`localhost:6379`)
 - [ ] Kafka ayakta mı? (`localhost:29092`)
 - [ ] Realm adı `AuthServer` mı?
 - [ ] Client adı `test-client` mi?
@@ -643,6 +674,7 @@ Aşağıdaki checklist ile test ortamını hızlıca doğrulayabilirsiniz:
 - [ ] Gateway, Keycloak için doğru porta mı bakıyor?
 - [ ] `product-service` ve `gateway` ayakta mı?
 - [ ] `product-service`, Admin Server üzerinde `UP` görünüyor mu?
+- [ ] Tekrarlı testlerde beklenmedik `429 Too Many Requests` alınıyor mu?
 - [ ] Tokensız istek `401` dönüyor mu?
 - [ ] Tokenlı istek başarılı dönüyor mu?
 
