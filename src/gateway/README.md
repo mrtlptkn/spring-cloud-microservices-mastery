@@ -401,6 +401,7 @@ cd "C:\Users\merta\Desktop\Spring Cloud Microservices\spring-cloud-microservices
 - `gateway` modülü WebFlux tabanlıdır; bloklayıcı işlemlerden kaçınılmalıdır.
 - `pom.xml` içinde bazı bağımlılıklar tekrar ediyor olabilir (ör. circuit breaker ve reactor-test). Temizlik için tekilleştirme yapılabilir.
 - Production ortamında `permitAll` route'ları gözden geçirilmeli ve role bazlı erişimle sıkılaştırılmalıdır.
+- `FEIGN_TARGET` logu gateway tarafında değil, `order-service` içinde üretilir. Detay ve örnekler için: `src/orderservice/README.md`.
 
 ## Spring Cloud Gateway Önemli Özellikler
 
