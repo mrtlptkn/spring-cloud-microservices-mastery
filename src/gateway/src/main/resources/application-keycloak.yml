@@ -1,0 +1,15 @@
+spring:
+  config:
+    activate:
+      on-profile: keycloak
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8180/realms/AuthServer
+          jwk-set-uri: http://localhost:8180/realms/AuthServer/protocol/openid-connect/certs
+
+gateway:
+  security:
+    mode: keycloak
+

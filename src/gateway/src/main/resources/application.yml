@@ -1,19 +1,14 @@
 spring:
   application:
     name: gateway
+  profiles:
+    active: keycloak
   # --- REDIS AYARLARI ---
   data:
     redis:
       host: localhost
       port: 6379
       password: Neominal
-
-  security:
-    oauth2:
-      resourceserver:
-        jwt:
-          issuer-uri: http://localhost:8180/realms/AuthServer
-          jwk-set-uri: http://localhost:8180/realms/AuthServer/protocol/openid-connect/certs
 
   cloud:
     gateway:
@@ -75,6 +70,10 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+gateway:
+  security:
+    mode: keycloak
 
 
 

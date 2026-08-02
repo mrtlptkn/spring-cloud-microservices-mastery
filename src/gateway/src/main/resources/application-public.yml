@@ -1,0 +1,10 @@
+spring:
+  config:
+    activate:
+      on-profile: public
+
+gateway:
+  security:
+    mode: public
+
+

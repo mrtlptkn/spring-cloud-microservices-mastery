@@ -61,6 +61,22 @@ Ek olarak:
 - Keycloak tabanlı JWT doğrulama (`issuer-uri`, `jwk-set-uri`)
 - Actuator ve Zipkin tracing ayarları
 
+### KeyResolver Bean'leri (`GatewayApplication`)
+
+`src/main/java/com/mertalptekin/gateway/GatewayApplication.java` içinde iki farklı `KeyResolver` bean'i bulunur:
+
+- `ipKeyResolver`
+  - İstek atan istemcinin IP bilgisini key olarak üretir.
+  - IP bilgisi yoksa `unknown` döner.
+  - Sonuç: Rate limit IP bazlı çalışır.
+
+- `userIdKeyResolver`
+  - Security context içindeki kullanıcı adını (`Principal#getName`) key olarak üretir.
+  - Kimlik doğrulama yoksa `anonymous` döner.
+  - Sonuç: Rate limit kullanıcı bazlı çalışır.
+
+Not: `@Primary` ile işaretlenen bean `ipKeyResolver` olduğu için, route konfigürasyonunda özel bir `key-resolver` belirtilmezse varsayılan olarak IP bazlı resolver kullanılır.
+
 ## Swagger / OpenAPI
 
 `gateway` modülünde Swagger dokümantasyonu WebFlux uyumlu `springdoc-openapi-starter-webflux-ui` ile etkinleştirilmiştir.
@@ -342,6 +358,35 @@ Bu yaklaşım, rate limiter anahtar üretiminde NPE riskini azaltır ve IP bazl�
 ```powershell
 cd "C:\Users\merta\Desktop\Spring Cloud Microservices\spring-cloud-microservices-mastery\src\gateway"
 .\mvnw.cmd spring-boot:run
+```
+
+### Profil Bazlı Çalıştırma (Farklı Config Dosyaları)
+
+`gateway` modülünde güvenlik konfigürasyonu profile göre ayrılmıştır:
+
+- `application-keycloak.yml` -> `keycloak` profili (JWT/Keycloak aktif)
+- `application-public.yml` -> `public` profili (permitAll, lokal hızlı test)
+
+Varsayılan profil `application.yml` içinde `keycloak` olarak gelir. Farklı profil ile çalıştırmak için:
+
+```powershell
+cd "C:\Users\merta\Desktop\Spring Cloud Microservices\spring-cloud-microservices-mastery\src\gateway"
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=keycloak"
+```
+
+```powershell
+cd "C:\Users\merta\Desktop\Spring Cloud Microservices\spring-cloud-microservices-mastery\src\gateway"
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=public"
+```
+
+Alternatif olarak JAR ile çalıştırırken:
+
+```powershell
+java -jar target\gateway-0.0.1-SNAPSHOT.jar --spring.profiles.active=keycloak
+```
+
+```powershell
+java -jar target\gateway-0.0.1-SNAPSHOT.jar --spring.profiles.active=public
 ```
 
 ## Test

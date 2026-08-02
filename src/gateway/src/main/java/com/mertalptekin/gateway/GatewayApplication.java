@@ -18,20 +18,20 @@ public class GatewayApplication {
 		SpringApplication.run(GatewayApplication.class, args);
 	}
 
-//    @Bean
-//    @Primary
-//    public KeyResolver ipKeyResolver() {
-//        return exchange -> Mono.justOrEmpty(exchange.getRequest().getRemoteAddress())
-//                .map(remoteAddress -> remoteAddress.getHostString())
-//                .filter(host -> !host.isBlank())
-//                .defaultIfEmpty("unknown");
-//    }
+    @Bean
+    @Primary
+    public KeyResolver ipKeyResolver() {
+        return exchange -> Mono.justOrEmpty(exchange.getRequest().getRemoteAddress())
+                .map(remoteAddress -> remoteAddress.getHostString())
+                .filter(host -> !host.isBlank())
+                .defaultIfEmpty("unknown");
+    }
 
-//    @Bean
-//    public KeyResolver userIdKeyResolver() {
-//        return exchange -> exchange.getPrincipal()
-//                .map(Principal::getName)
-//                .filter(name -> !name.isBlank())
-//                .defaultIfEmpty("anonymous");
-//    }
+    @Bean
+    public KeyResolver userIdKeyResolver() {
+        return exchange -> exchange.getPrincipal()
+                .map(Principal::getName)
+                .filter(name -> !name.isBlank())
+                .defaultIfEmpty("anonymous");
+    }
 }

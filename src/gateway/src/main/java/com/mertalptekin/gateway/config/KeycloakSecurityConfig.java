@@ -2,6 +2,7 @@ package com.mertalptekin.gateway.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebFluxSecurity
+@ConditionalOnProperty(name = "gateway.security.mode", havingValue = "keycloak")
 public class KeycloakSecurityConfig {
 
     @Bean
@@ -59,8 +61,8 @@ public class KeycloakSecurityConfig {
                                 .authenticated() // product service istek atmak için sadece authenticated olmak yeterli
 
                                 // Order Service routelarına gelecek isteklerde access token lazım ve admin olmak lazım.
-                                .pathMatchers("/order-service/**").permitAll()
-//                        .hasAuthority("microservices-admin")
+                                .pathMatchers("/order-service/**")
+                        .hasAuthority("microservices-admin")
                                 .anyExchange().authenticated()
                 ).oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(reactiveJwtAuthenticationConverter()))
