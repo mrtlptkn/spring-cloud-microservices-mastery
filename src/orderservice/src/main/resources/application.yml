@@ -64,6 +64,7 @@ management:
 logging:
   level:
     com.mertalptekin.orderservice.client.ProductClient: DEBUG
+    com.mertalptekin.orderservice.controller.OrderController: INFO
 
 springdoc:
   api-docs:

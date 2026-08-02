@@ -447,6 +447,41 @@ Windows PowerShell için:
 .\mvnw.cmd spring-boot:run
 ```
 
+## Load Balancer Icin Coklu Instance Örnegi
+
+`gateway` tarafinda `lb://product-service` kullanildigi icin, `product-service` ayni anda birden fazla portta calistirilabilir. Bu sayede Eureka birden fazla instance kaydi tutar ve load balancer istekleri dagitir.
+
+### 2 instance (5002 + 5003)
+
+```powershell
+# Terminal-1
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.arguments=--server.port=5002"
+```
+
+```powershell
+# Terminal-2
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.arguments=--server.port=5003"
+```
+
+### 3 instance (5002 + 5003 + 5004)
+
+```powershell
+# Terminal-3
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.arguments=--server.port=5004"
+```
+
+### Opsiyonel: instance bazli ayri log dosyasi
+
+```powershell
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.arguments=--server.port=5003 --logging.file.name=./logs/product-service/product-service-5003.log"
+```
+
+### Dogrulama
+
+1. Eureka UI'de birden fazla `PRODUCT-SERVICE` instance'i gorunmelidir.
+2. Gateway uzerinden tekrarli istek atildiginda (`/product-service/...`) trafikte dagitim gozlenir.
+3. Instance bazli log dosyalari kullaniliyorsa hangi istegin hangi porta gittigi kolayca izlenir.
+
 ## Üretim Notları
 
 - `application.yml` içinde sabit değer bırakılmamalıdır.

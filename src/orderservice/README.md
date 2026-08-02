@@ -195,6 +195,34 @@ public interface ProductClient {
 3. **Circuit Breaker:** Kütüphanede yapılandırılırsa, başarısız istekleri tollayabilir
 4. **Retry Mekanizması:** Ağ hatalarında otomatik retry yapılabilir
 
+### FEIGN_TARGET Logu ile Secilen Instance'i Gorme (Bu Proje Icin)
+
+`OrderController` içinde Feign çağrısından hemen önce `LoadBalancerClient` ile seçilen `product-service` instance bilgisi loglanır.
+
+Örnek log satırı:
+
+```text
+[FEIGN_TARGET] service=product-service host=172.31.176.1 port=5002 uri=http://172.31.176.1:5002
+```
+
+veya
+
+```text
+[FEIGN_TARGET] service=product-service host=172.31.176.1 port=5003 uri=http://172.31.176.1:5003
+```
+
+Bu davranışın nedeni:
+
+- Gateway/Eureka üzerinde `product-service` birden fazla instance (örn. `5002`, `5003`) olarak kayıtlıdır.
+- Spring Cloud LoadBalancer her çağrıda uygun instance seçer.
+- `order-service` logunda `[FEIGN_TARGET]` etiketi hangi porta gidildiğini net gösterir.
+
+Hızlı doğrulama:
+
+1. `product-service` iki farklı portta çalıştırılır (`5002` ve `5003`).
+2. `order-service` endpoint'i art arda çağrılır: `GET /api/v1/orders/{orderCode}/orderDetails`
+3. `order-service` konsolunda `[FEIGN_TARGET] ... port=5002` ve `[FEIGN_TARGET] ... port=5003` satırları gözlenir.
+
 ### OpenFeign İsteklerinde Tracing Header Propagation
 
 `TracingInterceptor`, Feign istekleri gönderilmeden hemen önce devreye giren bir `RequestInterceptor` bileşenidir. Amaç, mevcut tracing context'i downstream servise taşımaktır.

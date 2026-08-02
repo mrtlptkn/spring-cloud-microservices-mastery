@@ -13,6 +13,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.loadbalancer.LoadBalancerClient;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.Message;
@@ -27,11 +29,13 @@ import java.util.UUID;
 @Tag(name = "Orders", description = "Siparis yonetimi endpoint'leri")
 public class OrderController {
     private final ProductClient productClient;
+    private final LoadBalancerClient loadBalancerClient;
     private final StreamBridge streamBridge;
     private final ObjectMapper objectMapper;
 
-    public OrderController(ProductClient productClient, StreamBridge streamBridge, ObjectMapper objectMapper){
+    public OrderController(ProductClient productClient, LoadBalancerClient loadBalancerClient, StreamBridge streamBridge, ObjectMapper objectMapper){
         this.productClient = productClient;
+        this.loadBalancerClient = loadBalancerClient;
         this.streamBridge = streamBridge;
         this.objectMapper = objectMapper;
     }
@@ -46,6 +50,18 @@ public class OrderController {
         String[] productIds = new String[1];
         productIds[0] = UUID.randomUUID().toString();
         //productIds[1] = UUID.randomUUID().toString(); // veri tabanında çekilmiş gibi simüle ettik
+
+        ServiceInstance selectedInstance = loadBalancerClient.choose("product-service");
+        if (selectedInstance != null) {
+            log.warn("[FEIGN_TARGET] service={} host={} port={} uri={}",
+                    selectedInstance.getServiceId(),
+                    selectedInstance.getHost(),
+                    selectedInstance.getPort(),
+                    selectedInstance.getUri());
+        } else {
+            log.warn("[FEIGN_TARGET] product-service icin instance secilemedi");
+        }
+
         log.info("order-service-request");
         return productClient.getOrderedProducts(new OrderedProductDetailRequest(productIds));
     }
