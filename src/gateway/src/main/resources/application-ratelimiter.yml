@@ -1,0 +1,48 @@
+spring:
+  config:
+    activate:
+      on-profile: ratelimiter
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: Neominal
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: orderClient
+              uri: lb://order-service
+              predicates:
+                - Path=/order-service/api/v1/**
+              filters:
+                - StripPrefix=1
+
+            # Product details endpoint'i icin ayri route + rate limiter
+            - id: productDetailsRateLimited
+              uri: lb://product-service
+              predicates:
+                - Path=/product-service/api/v1/products/details
+                - Method=POST
+              filters:
+                - StripPrefix=1
+                - name: RequestRateLimiter
+                  args:
+                    redis-rate-limiter.requestedTokens: 1
+                    redis-rate-limiter.replenishRate: 5
+                    redis-rate-limiter.burstCapacity: 10
+                    key-resolver: "#{@ipKeyResolver}"
+
+            # Diger product endpoint'leri rate limiter olmadan akar
+            - id: productClient
+              uri: lb://product-service
+              predicates:
+                - Path=/product-service/api/v1/**
+              filters:
+                - StripPrefix=1
+
+gateway:
+  security:
+    mode: public
+

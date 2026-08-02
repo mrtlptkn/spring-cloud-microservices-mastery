@@ -366,6 +366,7 @@ cd "C:\Users\merta\Desktop\Spring Cloud Microservices\spring-cloud-microservices
 
 - `application-keycloak.yml` -> `keycloak` profili (JWT/Keycloak aktif)
 - `application-public.yml` -> `public` profili (permitAll, lokal hızlı test)
+- `application-ratelimiter.yml` -> `ratelimiter` profili (Redis tabanlı endpoint-özel rate limit)
 
 Varsayılan profil `application.yml` içinde `keycloak` olarak gelir. Farklı profil ile çalıştırmak için:
 
@@ -379,6 +380,11 @@ cd "C:\Users\merta\Desktop\Spring Cloud Microservices\spring-cloud-microservices
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=public"
 ```
 
+```powershell
+cd "C:\Users\merta\Desktop\Spring Cloud Microservices\spring-cloud-microservices-mastery\src\gateway"
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=ratelimiter"
+```
+
 Alternatif olarak JAR ile çalıştırırken:
 
 ```powershell
@@ -387,6 +393,10 @@ java -jar target\gateway-0.0.1-SNAPSHOT.jar --spring.profiles.active=keycloak
 
 ```powershell
 java -jar target\gateway-0.0.1-SNAPSHOT.jar --spring.profiles.active=public
+```
+
+```powershell
+java -jar target\gateway-0.0.1-SNAPSHOT.jar --spring.profiles.active=ratelimiter
 ```
 
 ## Test
@@ -496,6 +506,105 @@ Gateway'de `RequestRateLimiter` filter'ı, Redis'te hızlı karar verimi için t
 - IP başına rate limit uygulanır (her IP kendi quota'sına sahip)
 - Redis'in uygun şekilde çalışması gerekir
 - İhtiyaca göre `key-resolver` değeri `#{@userIdKeyResolver}` yapılarak kullanıcı bazlı limit uygulanabilir
+
+#### Ratelimiter profili ile gercekci endpoint-ozel senaryo
+
+`application-ratelimiter.yml` dosyasında `product-service` icin ayri bir route tanimlanir ve sadece `POST /product-service/api/v1/products/details` endpoint'ine Redis tabanli rate limit uygulanir.
+
+Bu senaryoda:
+
+- `replenishRate: 5` -> ayni IP saniyede 5 yeni hak kazanir
+- `burstCapacity: 10` -> kisa sureli patlamada maksimum 10 istek birikebilir
+- `requestedTokens: 1` -> her istek 1 hak tuketir
+
+Ornek route:
+
+```yaml
+- id: productDetailsRateLimited
+  uri: lb://product-service
+  predicates:
+    - Path=/product-service/api/v1/products/details
+    - Method=POST
+  filters:
+    - StripPrefix=1
+    - name: RequestRateLimiter
+      args:
+        redis-rate-limiter.requestedTokens: 1
+        redis-rate-limiter.replenishRate: 5
+        redis-rate-limiter.burstCapacity: 10
+        key-resolver: "#{@ipKeyResolver}"
+```
+
+Beklenen davranis:
+
+1. Normal hizdaki istekler `200` doner.
+2. Kisa surede limit asininca gateway `429 Too Many Requests` doner.
+3. Sadece bu endpoint rate-limitlidir; diger `product-service` endpoint'leri normal akar.
+
+Ne kadar zamanda rate limiter'a girer?
+
+- Bu profilde `requestedTokens=1`, `replenishRate=5`, `burstCapacity=10`.
+- Ilk anda kovada 10 token oldugu icin, tek IP'den arka arkaya gelen ilk **10 istek** genelde gecer.
+- Sonraki istekler, saniyede sadece **5 yeni token** uretildigi icin bu hizi asarsa `429` alir.
+
+Pratik yorum:
+
+- **Anlik patlama:** 1 saniyede 20 istek atarsan, yaklasik ilk 10'u gecer, kalani 429 olabilir.
+- **Surdurulebilir hiz:** Uzun sureli trafikte IP basina ortalama **en fazla 5 istek/saniye** tutmak gerekir.
+- Basit esitlik: Yaklasik izin verilen toplam istek = `burstCapacity + (replenishRate x sure_saniye)`
+  - Ornek: 2 saniyede yaklasik `10 + (5x2) = 20` istege kadar tolerans.
+
+Ornek test (PowerShell):
+
+```powershell
+# Ratelimiter profili ile gateway'i baslat
+cd "C:\Users\merta\Desktop\Spring Cloud Microservices\spring-cloud-microservices-mastery\src\gateway"
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=ratelimiter"
+```
+
+```powershell
+# Product details endpoint'ine tek istek (genelde 200)
+curl.exe -i -X POST "http://localhost:8084/product-service/api/v1/products/details" `
+  -H "Content-Type: application/json" `
+  --data "{\"ProductIds\":[\"P-1\"]}"
+```
+
+```powershell
+# Kisa surede patlama trafigi: bir kisim 200, limit asiminda 429 gorulur
+1..20 | ForEach-Object {
+  curl.exe -s -o NUL -w "Request $_ -> HTTP %{http_code}`n" -X POST "http://localhost:8084/product-service/api/v1/products/details" -H "Content-Type: application/json" --data "{\"ProductIds\":[\"P-1\"]}"
+}
+```
+
+Neden bazen 429 gormeyebilirim?
+
+- Istekleri tek tek ve yavas atarsaniz (ornegin >200ms-300ms araliklarla), saniyede 5 token yeniden doldugu icin limit hemen tetiklenmeyebilir.
+- `429` gormek icin istekleri kisa surede burst olarak gondermek gerekir (ornegin 1 saniye icinde 15-20 istek).
+
+Redis uzerinden rate limiter sayaçlarini gorme:
+
+```powershell
+# Rate limiter key'lerini listele (istek attiktan hemen sonra)
+docker exec redis redis-cli -a Neominal KEYS "request_rate_limiter*"
+```
+
+Ornek key formati:
+
+```text
+request_rate_limiter.{productDetailsRateLimited.<client-ip>}.tokens
+request_rate_limiter.{productDetailsRateLimited.<client-ip>}.timestamp
+```
+
+Canli izleme (1 sn aralikla):
+
+```powershell
+while ($true) {
+  docker exec redis redis-cli -a Neominal KEYS "request_rate_limiter*"
+  Start-Sleep -Seconds 1
+}
+```
+
+Not: Bu key'ler kisa sureli TTL ile tutulur (bu profilde yaklasik birkaç saniye), bu nedenle testten hemen sonra bakmak gerekir.
 
 ### 4) Circuit Breaker (Resilience4j)
 
