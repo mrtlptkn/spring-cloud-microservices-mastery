@@ -1,4 +1,11 @@
 package com.mertalptekin.productservice.request;
 
-public record OrderedProductDetailRequest(String[] ProductIds) {
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public record OrderedProductDetailRequest(
+		@JsonProperty("ProductIds")
+		@JsonAlias("productIds")
+		String[] productIds
+) {
 }

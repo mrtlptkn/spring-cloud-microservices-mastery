@@ -48,6 +48,10 @@ eureka:
 server:
   port: 5002
 
+product-service:
+  simulation:
+    enabled: false
+
 management:
   endpoints:
     web:

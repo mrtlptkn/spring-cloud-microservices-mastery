@@ -12,8 +12,8 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8189/realms/AuthServer
-          jwk-set-uri: http://localhost:8189/realms/AuthServer/protocol/openid-connect/certs
+          issuer-uri: http://localhost:8180/realms/AuthServer
+          jwk-set-uri: http://localhost:8180/realms/AuthServer/protocol/openid-connect/certs
 
   cloud:
     gateway:
@@ -29,48 +29,19 @@ spring:
             - id: productClient
               uri: lb://product-service
               predicates:
-                  - Path=/product-service/api/v1/**
+                - Path=/product-service/api/v1/**
               filters:
-                  - StripPrefix=1
-                  # ---- RATE LIMITER (REDIS) ----
-                  - name: RequestRateLimiter
-                    args:
-                      redis-rate-limiter.requestedTokens: 1 # Her istek 1 token tüketir
-                      redis-rate-limiter.replenishRate: 1 # Kullanıcı Üst üste sadece 1 istek yapabilir, Saniyede 1 adet yeni istek hakkı verilir.
-                      redis-rate-limiter.burstCapacity: 1 # Her saniye 1 tane yeni istek hakkı kazanır, biriktirebilir.”
-                      key-resolver: "#{@ipKeyResolver}"
-                      # Bir kullanıcı aynı (IP)'den saniyede en fazla 1 istek yapabilir ve
-                      # arka arkaya birden fazla istek gönderemez.
-                  # ---- CIRCUIT BREAKER ----
-                  - name: CircuitBreaker
-                    args:
-                      name: productServiceBreaker
-                      fallbackUri: forward:/fallback/product-service
-                      statusCodes:
-                        - "500"
+                - StripPrefix=1
 
-# Resilience4j Configuration
-resilience4j:
-  circuitbreaker:
-    instances:
-      productServiceBreaker:
-        registerHealthIndicator: true
-        slidingWindowSize: 3              # Sadece son 3 isteği hafızada tut
-        minimumNumberOfCalls: 3            # Hesaplama yapmak için en az 3 istek gelmesini bekle
-        permittedNumberOfCallsInHalfOpenState: 2 # 30 saniye bitince HalfOpen State 2 isteğe izin ver
-        automaticTransitionFromOpenToHalfOpenEnabled: true
-        waitDurationInOpenState: 30s        # # Devre açıldıktan sonra 30 saniye boyunca KAPALI kal (Kimseyi geçirme)
-        #failureRateThreshold: 50           # Open circuit if 50% of calls fail
-        recordExceptions:                   # Belirli hata tipleri circuitBraker devreye al
-          - java.lang.Throwable
-          - java.util.concurrent.TimeoutException
-          - java.io.IOException
-
-  # Time Limiter (Timeout configuration)
-  timelimiter:
-    instances:
-      productServiceBreaker:
-        timeoutDuration: 2s # Throw TimeoutException if request takes longer than 2s
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
 
 server:
   port: 8084

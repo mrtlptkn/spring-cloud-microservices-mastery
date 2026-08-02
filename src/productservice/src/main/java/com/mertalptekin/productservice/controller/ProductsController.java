@@ -30,7 +30,9 @@ public class ProductsController {
 
     private final String serverPort;
 
-    public ProductsController(@Value("${server.port}") String serverPort){
+    public ProductsController(
+            @Value("${server.port}") String serverPort
+    ){
         this.serverPort = serverPort;
     }
 
@@ -44,12 +46,14 @@ public class ProductsController {
     })
     public ResponseEntity<OrderedProductDetailResponse> productDetailRequest(@RequestBody OrderedProductDetailRequest request) throws InterruptedException {
 
+        String[] productIds = request.productIds();
 
-        if(request.ProductIds().length == 2){
+
+        if(productIds.length == 2){
             throw  new RuntimeException("Sunucuda bir hata meydana geldi");
         }
 
-        if(request.ProductIds().length == 3){
+        if(productIds.length == 3){
             Thread.sleep(3000);
         }
 
