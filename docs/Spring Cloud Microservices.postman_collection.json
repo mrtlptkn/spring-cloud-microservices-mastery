@@ -52,6 +52,89 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Actuator Refresh Config",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        },
+        {
+          "name": "Service BREAK V1",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5002/api/v1/admin/health/break",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5002",
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "health",
+                "break"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Service Health FIX",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5002/api/v1/admin/health/fix",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5002",
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "health",
+                "fix"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Service Break V2",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5002/api/v1/admin/health/break?reason=Database+connection+pool+exhausted",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "5002",
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "health",
+                "break"
+              ],
+              "query": [
+                {
+                  "key": "reason",
+                  "value": "Database+connection+pool+exhausted"
+                }
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
@@ -62,23 +145,16 @@
           "name": "Order Service (GetOrderedProducts) FROM GW",
           "request": {
             "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{accessToken}}",
-                  "type": "string"
-                }
-              ]
+              "type": "noauth"
             },
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "localhost:8083/order-service/api/v1/orders/123/orderDetails",
+              "raw": "localhost:8084/order-service/api/v1/orders/123/orderDetails",
               "host": [
                 "localhost"
               ],
-              "port": "8083",
+              "port": "8084",
               "path": [
                 "order-service",
                 "api",
@@ -99,7 +175,7 @@
               "bearer": [
                 {
                   "key": "token",
-                  "value": "{{accessToken}}",
+                  "value": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJ0cUdzVThjTmcxYUtLRkk0a3kyX21aeWt2SVZYdHBjWk5xWWJtVG1FVkxNIn0.eyJleHAiOjE3ODU2NzA3ODIsImlhdCI6MTc4NTY3MDQ4MiwianRpIjoiNTVlMjY5MDctZmY5MS00ODNkLTgxMzQtOTc0OTBkMDA2NDlkIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MTgwL3JlYWxtcy9BdXRoU2VydmVyIiwiYXVkIjoiYWNjb3VudCIsInN1YiI6ImFkN2VmNjJjLTg0OTgtNDYzOC1hY2ZlLThmMmJkYzVkNmU2MSIsInR5cCI6IkJlYXJlciIsImF6cCI6InRlc3QtY2xpZW50Iiwic2Vzc2lvbl9zdGF0ZSI6ImU5ZDZhNmMyLTJhNWQtNDk1Ni05NDQ1LTlmZjg5ZThjNjkyYSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiLyoiXSwicmVhbG1fYWNjZXNzIjp7InJvbGVzIjpbImRlZmF1bHQtcm9sZXMtYXV0aHNlcnZlciIsIm9mZmxpbmVfYWNjZXNzIiwibWljcm9zZXJ2aWNlcy1hZG1pbiIsInVtYV9hdXRob3JpemF0aW9uIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJvcGVuaWQgcHJvZmlsZSBlbWFpbCIsInNpZCI6ImU5ZDZhNmMyLTJhNWQtNDk1Ni05NDQ1LTlmZjg5ZThjNjkyYSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwibmFtZSI6IkFsaSBUYW4iLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJhbGkiLCJnaXZlbl9uYW1lIjoiQWxpIiwiZmFtaWx5X25hbWUiOiJUYW4iLCJlbWFpbCI6ImFsaUB0ZXN0LmNvbSJ9.Cs2a9U03AbN4wTEjko3rf4Ty8BnZHCcgzjyMogLnnIMh4mWn8vPjyHudpViy2_lPNVGryrW1MUEo9LiHSlJJsiIo1Cj1ekXlnQadhKPD_t3VV8qpSQxXQlQNXARCBhi1Gb06ccxSPPc1BBW0-wGwBxY1qJ4WYfPgnsktrki-AfUQFxo10EpMWnMm42BA1XPDbvy8HfCmIxs7XoBvmbs4p0s0BVufaqMGG1pD7mOXZZtJacfQTu6_Duj4THrDmWTNV5f4Ti0P3jk20IB3pe6GEueHNbh5MOFhh5huIjB-YZGw39AzoGlZc2gMzFy__AzeS9X691fmkF5znZqrKNHOyg",
                   "type": "string"
                 }
               ]
@@ -108,7 +184,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\"ProductIds\":[\"1\",\"2\"]}",
+              "raw": "{\"ProductIds\":[]}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -116,11 +192,11 @@
               }
             },
             "url": {
-              "raw": "localhost:8083/product-service/api/v1/products/details",
+              "raw": "localhost:8084/product-service/api/v1/products/details",
               "host": [
                 "localhost"
               ],
-              "port": "8083",
+              "port": "8084",
               "path": [
                 "product-service",
                 "api",
@@ -168,11 +244,12 @@
                 {
                   "key": "client_secret",
                   "value": "USZehefVnHGOVtfy46ngFdizJy5nTvmW",
-                  "type": "text"
+                  "type": "text",
+                  "disabled": true
                 },
                 {
                   "key": "scope",
-                  "value": "openid profile test-client",
+                  "value": "openid profile",
                   "type": "text"
                 }
               ]
@@ -277,6 +354,54 @@
                 "submit"
               ]
             }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "ProductService",
+      "item": [
+        {
+          "name": "Product Service Test",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"ProductIds\":[\"1\",\"2\",\"3\"]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "localhost:5002/api/v1/products/details",
+              "host": [
+                "localhost"
+              ],
+              "port": "5002",
+              "path": [
+                "api",
+                "v1",
+                "products",
+                "details"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Spring Config Server",
+      "item": [
+        {
+          "name": "Refresh",
+          "request": {
+            "method": "GET",
+            "header": []
           },
           "response": []
         }
