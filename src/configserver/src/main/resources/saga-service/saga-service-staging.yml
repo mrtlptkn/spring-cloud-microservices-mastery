@@ -1,0 +1,32 @@
+# Saga Service - Staging Ortamı Konfigürasyonu
+
+app:
+  saga-service:
+    environment: staging
+    version: 1.0.0-RC1
+
+    database:
+      host: postgres-staging.example.com
+      port: 5432
+      name: sagadb_staging
+      username: staging_user
+      password: "${DB_PASSWORD_STAGING}"
+
+    apiKeys:
+      orderServiceUrl: http://order-service-staging:5001
+      productServiceUrl: http://product-service-staging:8080
+      requestTimeoutMs: 10000
+
+    saga:
+      maxRetry: 5
+      timeoutMs: 60000
+
+    featureFlags:
+      enableSagaLogging: false
+      enableCompensation: true
+
+logging:
+  level:
+    root: INFO
+    com.mertalptekin: INFO
+

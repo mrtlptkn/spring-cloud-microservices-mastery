@@ -1,0 +1,35 @@
+# Saga Service - Development Ortamı Konfigürasyonu
+# Bu dosya Config Server tarafından saga-service/dev profilinде sunulur
+
+app:
+  saga-service:
+    environment: dev
+    version: 1.0.0-SNAPSHOT
+
+    database:
+      host: localhost
+      port: 5432
+      name: sagadb_dev
+      username: dev_user
+      password: dev_password
+
+    apiKeys:
+      orderServiceUrl: http://localhost:5001
+      productServiceUrl: http://localhost:8080
+      requestTimeoutMs: 5000
+
+    saga:
+      maxRetry: 3
+      timeoutMs: 30000
+
+    featureFlags:
+      enableSagaLogging: true
+      enableCompensation: true
+
+# Logging ayarları (dev ortamı için verbose)
+logging:
+  level:
+    root: INFO
+    com.mertalptekin: DEBUG
+    com.mertalptekin.sagaservice.saga: DEBUG
+

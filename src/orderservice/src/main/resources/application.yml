@@ -54,6 +54,13 @@ management:
       base-path: /actuator
       exposure:
         include: "*"
+  endpoint:
+    refresh:
+      enabled: true
+    env:
+      enabled: true
+    health:
+      show-details: always
   tracing:
     sampling:
       probability: 1.0

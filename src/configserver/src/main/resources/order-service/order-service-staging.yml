@@ -1,0 +1,34 @@
+# Order Service - Staging Ortamı Konfigürasyonu
+# Bu dosya Config Server tarafından order-service/staging profilinде sunulur
+# NOT: Staging ortamında production'a yakın ayarlar kullanılır
+
+app:
+  order-service:
+    environment: staging
+    version: 1.0.0-RC1
+
+    database:
+      host: postgres-staging.example.com
+      port: 5432
+      name: orderdb_staging
+      username: staging_user
+      password: "${DB_PASSWORD_STAGING:staging_password}"
+
+    apiKeys:
+      productServiceUrl: http://product-service-staging:8080
+      notificationServiceUrl: http://notification-service-staging:9000
+      requestTimeoutMs: 10000
+
+    featureFlags:
+      enableNewOrderProcess: true
+      enableNotificationService: true
+      enableDetailedLogging: false
+      maxOrderRetry: 5
+
+# Logging ayarları (staging ortamı için normal level)
+logging:
+  level:
+    root: INFO
+    com.mertalptekin: INFO
+    com.mertalptekin.orderservice.client: DEBUG
+

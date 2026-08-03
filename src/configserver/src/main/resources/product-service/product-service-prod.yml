@@ -1,0 +1,27 @@
+# Product Service - Production Ortamı Konfigürasyonu
+
+app:
+  product-service:
+    environment: prod
+    version: 1.0.0
+
+    database:
+      host: "${DB_HOST_PROD}"
+      port: 5432
+      name: productdb_prod
+      username: "${DB_USERNAME_PROD}"
+      password: "${DB_PASSWORD_PROD}"
+
+    apiKeys:
+      orderServiceUrl: http://order-service:5001
+      cacheTimeoutSec: 600
+
+    featureFlags:
+      enableCache: true
+      enableDetailedLogging: false
+
+logging:
+  level:
+    root: WARN
+    com.mertalptekin: INFO
+

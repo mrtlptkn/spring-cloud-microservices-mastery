@@ -1,0 +1,34 @@
+# Order Service - Development Ortamı Konfigürasyonu
+# Bu dosya Config Server tarafından order-service/dev profilinde sunulur
+
+app:
+  order-service:
+    environment: staging
+    version: 1.0.0-SNAPSHOT
+
+
+    database:
+      host: localhost
+      port: 5432
+      name: orderdb_dev
+      username: dev_user
+      password: dev_password
+
+    apiKeys:
+      productServiceUrl: http://localhost:8080
+      notificationServiceUrl: http://localhost:9000
+      requestTimeoutMs: 5000
+
+    featureFlags:
+      enableNewOrderProcess: false
+      enableNotificationService: false
+      enableDetailedLogging: true
+      maxOrderRetry: 3
+
+# Logging ayarları (dev ortamı için verbose)
+logging:
+  level:
+    root: INFO
+    com.mertalptekin: DEBUG
+    com.mertalptekin.orderservice.config: DEBUG
+

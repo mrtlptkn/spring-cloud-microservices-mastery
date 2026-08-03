@@ -1,0 +1,33 @@
+# Order Service - Production Ortamı Konfigürasyonu
+# Bu dosya Config Server tarafından order-service/prod profilinде sunulur
+# UYARI: Production konfigürasyonu - hassas bilgileri ortam değişkenleri ile yönetin!
+
+app:
+  order-service:
+    environment: prod
+    version: 1.0.0
+
+    database:
+      host: "${DB_HOST_PROD}"
+      port: 5432
+      name: orderdb_prod
+      username: "${DB_USERNAME_PROD}"
+      password: "${DB_PASSWORD_PROD}"
+
+    apiKeys:
+      productServiceUrl: http://product-service:8080
+      notificationServiceUrl: http://notification-service:9000
+      requestTimeoutMs: 15000
+
+    featureFlags:
+      enableNewOrderProcess: true
+      enableNotificationService: true
+      enableDetailedLogging: false
+      maxOrderRetry: 5
+
+# Logging ayarları (production - minimal logging)
+logging:
+  level:
+    root: WARN
+    com.mertalptekin: INFO
+

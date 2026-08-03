@@ -98,6 +98,121 @@ Aşağıdaki diyagram servislerin birbirine olan bağımlılıklarını gösteri
 
 ---
 
+## 🎯 Spring Cloud Dinamik Konfigürasyon Yönetimi (@RefreshScope)
+
+### Problem
+
+Bir sistem, çalışan servislerin konfigürasyonunu (veritabanı host'u, API anahtarları, feature flag'ler) 
+güncellemek istediğinde, her servisi yeniden başlatması gerekmektedir. Dev → Staging → Production 
+ortamlarına geçişte ayrı ayrı deployment yapılması gerekmeliyse operational complexity artmaktadır.
+
+### Çözüm: Config Server + @RefreshScope
+
+```
+Config Server (Merkezi Depo)
+    ├── order-service-dev.yml
+    ├── order-service-staging.yml
+    └── order-service-prod.yml
+         │
+         ├─→ Order Service (@RefreshScope)
+         ├─→ Product Service (@RefreshScope) 
+         └─→ Saga Service (@RefreshScope)
+              │
+              └─→ POST /actuator/refresh
+                   ✅ Deployment Yok!
+                   ✅ Restart Yok!
+```
+
+### Detaylı Rehber
+
+📖 **Tam Dokümantasyon:** [`DYNAMIC_CONFIG_MANAGEMENT.md`](./DYNAMIC_CONFIG_MANAGEMENT.md)
+
+**Hızlı Başlangıç:**
+
+1. **Config Server'ı Başlat** (Native Profili):
+   ```powershell
+   cd src/config-server
+   $env:SPRING_PROFILES_ACTIVE="native"
+   .\mvnw.cmd spring-boot:run
+   ```
+
+2. **Order Service'i Başlat** (Dev Profili):
+   ```powershell
+   cd src/order-service
+   $env:SPRING_PROFILES_ACTIVE="dev"
+   .\mvnw.cmd spring-boot:run
+   ```
+
+3. **Mevcut Config'i Kontrol Et**:
+   ```bash
+   curl http://localhost:5001/api/v1/config/info
+   ```
+
+4. **Config Server'da Dosyayı Güncelle**:
+   ```yaml
+   # src/configserver/src/main/resources/order-service/order-service-staging.yml
+   app.order-service.featureFlags.enableNewOrderProcess: true
+   ```
+
+5. **Refresh Tetikle** (Deployment yok!):
+   ```bash
+   curl -X POST http://localhost:5001/actuator/refresh
+   ```
+
+6. **Güncellemeleri Doğrula**:
+   ```bash
+   curl http://localhost:5001/api/v1/config/info
+   # enableNewOrderProcess artık true!
+   ```
+
+### Yeni Dosyalar
+
+- 📄 [`DYNAMIC_CONFIG_MANAGEMENT.md`](./DYNAMIC_CONFIG_MANAGEMENT.md) — Detaylı rehber
+- 📝 [`DynamicConfigProperties.java`](./src/orderservice/src/main/java/com/mertalptekin/orderservice/config/DynamicConfigProperties.java) — @RefreshScope config sınıfı
+- 🎮 [`ConfigController.java`](./src/orderservice/src/main/java/com/mertalptekin/orderservice/controller/ConfigController.java) — Config endpoint'leri
+- 🧪 [`test-dynamic-config.ps1`](./test-dynamic-config.ps1) — Otomatik test script'i
+
+### Konfigürasyon Dosyaları
+
+```
+src/configserver/src/main/resources/
+├── order-service/
+│   ├── order-service.yml          # Global
+│   ├── order-service-dev.yml      # Dev profili
+│   ├── order-service-staging.yml  # Staging profili (✨ Yeni)
+│   └── order-service-prod.yml     # Production profili (✨ Yeni)
+├── product-service/
+│   ├── product-service-dev.yml    # (✨ Yeni)
+│   ├── product-service-staging.yml # (✨ Yeni)
+│   └── product-service-prod.yml   # (✨ Yeni)
+└── saga-service/
+    ├── saga-service-dev.yml       # (✨ Yeni)
+    └── saga-service-staging.yml   # (✨ Yeni)
+```
+
+### Test Script'i
+
+```powershell
+.\test-dynamic-config.ps1
+```
+
+Bu script otomatik olarak:
+- Config Server sağlığını kontrol eder
+- Order Service sağlığını kontrol eder
+- Dev profili konfigürasyonunu gösterir
+- /actuator/refresh endpoint'ini test eder
+- Güncellemeleri doğrular
+
+### Avantajları
+
+✅ **Zero-Downtime Updates** — Uygulama çalışırken config güncelle  
+✅ **Merkezi Yönetim** — Tüm servisler tek yerden yapılandırılır  
+✅ **Ortam Yönetimi** — dev/staging/prod ayrımı temiz  
+✅ **Feature Flag'ler** — A/B testing ve gradual rollout  
+✅ **Hızlı Güncelleme** — Seconds içinde etkili olur  
+
+---
+
 ## Çalıştırma Sırası (Adım Adım)
 
 ### 1. Adım — Altyapıyı Başlat (Docker)

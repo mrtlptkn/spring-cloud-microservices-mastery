@@ -1,0 +1,29 @@
+# Product Service - Development Ortamı Konfigürasyonu
+# Bu dosya Config Server tarafından product-service/dev profilinде sunulur
+
+app:
+  product-service:
+    environment: dev
+    version: 1.0.0-SNAPSHOT
+
+    database:
+      host: localhost
+      port: 5432
+      name: productdb_dev
+      username: dev_user
+      password: dev_password
+
+    apiKeys:
+      orderServiceUrl: http://localhost:5001
+      cacheTimeoutSec: 60
+
+    featureFlags:
+      enableCache: false
+      enableDetailedLogging: true
+
+# Logging ayarları (dev ortamı için verbose)
+logging:
+  level:
+    root: INFO
+    com.mertalptekin: DEBUG
+

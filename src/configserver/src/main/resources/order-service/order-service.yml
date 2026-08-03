@@ -1,0 +1,18 @@
+# Order Service - Varsayılan (Global) Konfigürasyon
+# Bu dosya order-service'in tüm profilleri tarafından kullanılır
+
+server:
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: order-service
+
+# CommonProperties - tüm profillerde ortak olan özellikler
+app:
+  order-service:
+    version: 1.0.0
+    featureFlags:
+      enableDetailedLogging: false
+

@@ -1,0 +1,29 @@
+# Product Service - Staging Ortamı Konfigürasyonu
+# Bu dosya Config Server tarafından product-service/staging profilinде sunulur
+
+app:
+  product-service:
+    environment: staging
+    version: 1.0.0-RC1
+
+    database:
+      host: postgres-staging.example.com
+      port: 5432
+      name: productdb_staging
+      username: staging_user
+      password: "${DB_PASSWORD_STAGING}"
+
+    apiKeys:
+      orderServiceUrl: http://order-service-staging:5001
+      cacheTimeoutSec: 300
+
+    featureFlags:
+      enableCache: true
+      enableDetailedLogging: false
+
+# Logging ayarları
+logging:
+  level:
+    root: INFO
+    com.mertalptekin: INFO
+

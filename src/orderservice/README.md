@@ -10,7 +10,7 @@ Bu modül, mikroservis mimarisinde **sipariş yönetimi** işlevlerini sağlayan
 - Sipariş oluşturma ve yönetim API'leri sunmak
 - Ürün servisiyle OpenFeign kullanarak servis-to-servis iletişim yapmak
 - Kafka aracılığıyla event-driven mimariye katılmak (Saga pattern)
-- Config Server'dan merkezi konfigürasyon almak
+- **Config Server'dan merkezi konfigürasyon almak (@RefreshScope ile dinamik güncelleme)**
 - Eureka üzerinden hizmet keşfi (service discovery) uygulamak
 - Spring Boot Admin tarafından merkezi yönetilmek
 - Zipkin ile dağıtık izleme (tracing) sağlamak
@@ -156,6 +156,155 @@ management:
 - **Actuator:** Tüm endpoints açık (health, metrics, vb.)
 - **Spring Boot Admin:** `http://localhost:8081` üzerinde merkezi yönetim
 - **Zipkin:** %100 trace sampling (`1.0`)
+
+## Dinamik Konfigürasyon Yönetimi (@RefreshScope)
+
+Order Service, **Spring Cloud Config Server** aracılığıyla merkezi konfigürasyon yönetimini destekler. 
+@RefreshScope annotasyonunu kullanarak, **uygulamayı yeniden başlatmadan** runtime'da konfigürasyon değişikliklerini uygulayabilirsiniz.
+
+### Senaryo: Dev → Staging → Production Ortamı Geçişi
+
+Örneğin, geliştirme ortamından (dev) staging ortamına geçişte:
+
+**Dev Ortamında:**
+```yaml
+# order-service-dev.yml (Config Server'dan okunur)
+app.order-service.environment: dev
+app.order-service.database.host: localhost:5432
+app.order-service.featureFlags.enableNewOrderProcess: false
+```
+
+**Staging Ortamında (Deployment yapmadan):**
+1. Config Server'daki `order-service-staging.yml` güncelle
+2. Order Service'e REST isteği gönder: `POST /actuator/refresh`
+3. Yeni konfigürasyonlar anında uygulanır ✅
+
+### Dinamik Config Özelliği: DynamicConfigProperties
+
+Order Service'te yeni `DynamicConfigProperties` sınıfı oluşturulmuştur:
+
+```java
+@Component
+@RefreshScope  // ← Refresh endpoint çağrıldığında yeniden oluşturulur
+@ConfigurationProperties(prefix = "app.order-service")
+public class DynamicConfigProperties {
+    private Database database;      // DB bağlantı bilgileri
+    private ApiKeys apiKeys;        // API anahtarları ve URL'ler
+    private FeatureFlags featureFlags;  // Feature flag'ler
+    private String environment;     // Ortam bilgisi (dev/staging/prod)
+    private String version;         // Versiyon
+}
+```
+
+### Aktif Konfigürasyonları Kontrol Etme
+
+Yeni endpoint'ler eklenmiştir:
+
+```
+GET  /api/v1/config/info   - Aktif tüm konfigürasyon bilgilerini göster
+GET  /api/v1/config/status - Ortam ve versiyon bilgisini göster
+POST /actuator/refresh     - Config değişikliklerini tetikle
+```
+
+#### Örnek İstek/Cevap
+
+**Dev ortamında başlangıç:**
+```bash
+$ curl http://localhost:5001/api/v1/config/info
+
+{
+  "environment": "dev",
+  "version": "1.0.0-SNAPSHOT",
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "name": "orderdb_dev"
+  },
+  "featureFlags": {
+    "enableNewOrderProcess": false,
+    "enableNotificationService": false,
+    "maxOrderRetry": 3
+  }
+}
+```
+
+**Config Server'da değişiklik yap:**
+```yaml
+# order-service-staging.yml
+app.order-service.environment: staging
+app.order-service.featureFlags.enableNewOrderProcess: true
+app.order-service.featureFlags.enableNotificationService: true
+```
+
+**Refresh tetikle:**
+```bash
+$ curl -X POST http://localhost:5001/actuator/refresh
+```
+
+**Sonra yeniden kontrol et:**
+```bash
+$ curl http://localhost:5001/api/v1/config/info
+
+{
+  "environment": "staging",
+  "version": "1.0.0-RC1",
+  "database": {
+    "host": "postgres-staging.example.com",
+    ...
+  },
+  "featureFlags": {
+    "enableNewOrderProcess": true,      # ← Değişti!
+    "enableNotificationService": true,  # ← Değişti!
+    ...
+  }
+}
+```
+
+### Profil Değiştirerek Config Seçme
+
+Order Service'i farklı profille başlatmak için:
+
+```powershell
+# Dev profili (varsayılan)
+$env:SPRING_PROFILES_ACTIVE="dev"
+.\mvnw.cmd spring-boot:run
+
+# Staging profili
+$env:SPRING_PROFILES_ACTIVE="staging"
+.\mvnw.cmd spring-boot:run
+
+# Production profili
+$env:SPRING_PROFILES_ACTIVE="prod"
+.\mvnw.cmd spring-boot:run
+```
+
+Config Server otomatik olarak uygun dosyayı sunacaktır:
+- Dev → `order-service-dev.yml`
+- Staging → `order-service-staging.yml`
+- Prod → `order-service-prod.yml`
+
+### Avantajları
+
+✅ **Deployment Gerekmiyor:** Config değişikliğinde uygulama restart gerekmez  
+✅ **Merkezi Yönetim:** Tüm servislerin konfigürasyonu tek yerden yönetilir  
+✅ **Ortam Ayrımı:** dev/staging/prod ayrımı net ve yönetilebilir  
+✅ **Feature Flag'ler:** A/B testing ve gradual rollout yapılabilir  
+✅ **Hızlı Güncelleme:** Seconds'ler içinde ortamlar arasında geçiş yapılabilir  
+
+### Config Server Dosyaları
+
+```
+src/configserver/src/main/resources/
+├── order-service/
+│   ├── order-service-dev.yml
+│   ├── order-service-staging.yml
+│   └── order-service-prod.yml
+└── product-service/
+    ├── product-service-dev.yml
+    └── product-service-staging.yml
+```
+
+Detailed açıklamalar için: **[Config Server README](../configserver/README.md#dinamik-konfigürasyon-yönetimi-refreshscope)**
 
 ## Swagger / OpenAPI
 
