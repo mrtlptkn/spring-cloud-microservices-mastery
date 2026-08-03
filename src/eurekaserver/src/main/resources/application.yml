@@ -9,4 +9,14 @@ eureka:
   client:
     register-with-eureka: false
     fetch-registry: false
+  server:
+    # Self-preservation'ı kapat (test/simülasyon ortamı için)
+    # UYARI: Production'da true olmalı
+    enable-self-preservation: false
+    # Sağlıksız instance'ları her 5 saniyede bir temizle (default: 60000ms)
+    eviction-interval-timer-in-ms: 5000
+    # Registry cache'ini hızlı güncelle
+    response-cache-update-interval-ms: 3000
+    # Heartbeat bekleme süresi threshold'u düşür
+    renewal-percent-threshold: 0.49
 
