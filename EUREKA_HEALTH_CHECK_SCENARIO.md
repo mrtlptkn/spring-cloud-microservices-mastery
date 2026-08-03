@@ -49,8 +49,7 @@ cd src\orderservice
 
 # Terminal 3 - Order Service Instance 2 (port 5002)
 cd src\orderservice
-$env:SERVER_PORT="5002"
-.\mvnw.cmd spring-boot:run
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.arguments=--server.port=5002"
 ```
 
 ---
@@ -64,11 +63,11 @@ $env:SERVER_PORT="5002"
 **Adımlar:**
 ```powershell
 # Her iki instance health kontrolü
-Invoke-RestMethod "http://localhost:5001/actuator/health"
-Invoke-RestMethod "http://localhost:5002/actuator/health"
+"http://localhost:5001/actuator/health"
+"http://localhost:5002/actuator/health"
 
 # Eureka'da her iki instance'ı listele
-Invoke-RestMethod "http://localhost:8761/eureka/apps/order-service"
+http://localhost:8761/eureka/apps/ORDER-SERVICE
 ```
 
 **Beklenen Sonuç:**
@@ -178,7 +177,7 @@ Invoke-RestMethod "http://localhost:5002/actuator/health"
 Start-Sleep -Seconds 10
 
 # Eureka'da tekrar UP görünmeli
-Invoke-RestMethod "http://localhost:8761/eureka/apps/order-service" | Select-Xml "//instance" | ForEach-Object { $_.Node.instanceId + " -> " + $_.Node.status }
+Invoke-RestMethod "http://localhost:8761/eureka/apps/ORDER-SERVICE
 ```
 
 **Beklenen Sonuç:**

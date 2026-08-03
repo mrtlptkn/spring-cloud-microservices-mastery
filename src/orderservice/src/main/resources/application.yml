@@ -19,6 +19,10 @@ spring:
           default:
             connect-timeout: 2000
             read-timeout: 5000
+      # İstek giden instance hata döndürdüğünde
+      # (5xx hataları vb.), Spring Cloud LoadBalancer'ın
+      # retry mekanizması devreye girerek isteği anında
+      # sağlıklı olan diğer instance'a yönlendirebilir.
       loadbalancer:
         retry:
           enabled: true

@@ -10,6 +10,8 @@ eureka:
     register-with-eureka: false
     fetch-registry: false
   server:
+    # client'ların güncel listeyi anlık alması sağlanır.
+    use-read-only-response-cache: false
     # Self-preservation'ı kapat (test/simülasyon ortamı için)
     # UYARI: Production'da true olmalı
     enable-self-preservation: false
