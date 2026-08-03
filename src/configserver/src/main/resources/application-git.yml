@@ -8,5 +8,5 @@ spring:
         git:
           default-label: main
           uri: https://github.com/neominalbilisim/spring-cloud-config-repo
-          search-paths: src/config/order-service-config
+          search-paths: src/config/order-service
 

@@ -8,4 +8,3 @@ spring:
         native:
           search-locations: classpath:/order-service,classpath:/product-service,classpath:/saga-service
 
-

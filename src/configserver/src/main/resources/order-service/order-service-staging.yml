@@ -10,8 +10,8 @@ app:
     database:
       host: postgres-staging.example.com
       port: 5432
-      name: orderdb_staging
-      username: staging_user
+      name: orderdb_staging_v4
+      username: staging_user_v4
       password: "${DB_PASSWORD_STAGING:staging_password}"
 
     apiKeys:
