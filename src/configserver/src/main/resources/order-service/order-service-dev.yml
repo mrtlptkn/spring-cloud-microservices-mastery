@@ -3,7 +3,7 @@
 
 app:
   order-service:
-    environment: staging
+    environment: dev
     version: 1.0.0-SNAPSHOT
 
 
