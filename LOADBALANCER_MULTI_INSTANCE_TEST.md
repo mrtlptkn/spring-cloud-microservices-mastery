@@ -82,7 +82,7 @@ Aşağıdaki servisler **bu sırayla** çalışıyor olmalıdır:
 > ⚠️ Gateway varsayılan olarak `keycloak` profiliyle başlıyor.
 > Keycloak olmadan test etmek için `public` profiliyle başlat:
 > ```powershell
-> $env:SPRING_PROFILES_ACTIVE="public"; .\mvnw.cmd spring-boot:run
+> .\mvnw.cmd spring-boot:run "-Dspring-boot.run.arguments=--spring.profiles.active=public"
 > ```
 
 ---
