@@ -50,6 +50,7 @@ public class SubmitOrderConsumer {
                 }
 
 
+                // akış işlendiyse veritabanına kaydet
                 log.info("Subcribed message " + data.orderCode());
 
             } catch (JsonProcessingException e) {
